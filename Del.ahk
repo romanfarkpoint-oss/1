@@ -1,5 +1,5 @@
-#Requires AutoHotkey v2.0
-#SingleInstance Off
+﻿#Requires AutoHotkey v2.0
+#SingleInstance Off ; musi zustat Off kvuli jednorazovemu spousteni z Total Commanderu pres /tcbutton
 #MaxThreadsPerHotkey 1
 Persistent
 SendMode "Event"
@@ -39,32 +39,46 @@ LOCAL_MAPPED_DRIVE_OVERRIDES := Map()
 LOCAL_MAPPED_DRIVE_OVERRIDES["Y:"] := "D:\Downloads"
 
 ; ============================================================
-; DEL PRO TOTAL COMMANDER
+; DEL PRO TOTAL COMMANDER - VARIANTA A
 ; ============================================================
+;
+; DULEZITE:
+; Tento skript uz NECHYTA fyzickou klavesu Delete pomoci AHK hotkey.
+; Klavesu Delete v Total Commanderu namapuj primo v TC na em_ahk_delete.
 ;
 ; usercmd.ini:
 ;
-; [em_trvale_smazat]
+; [em_ahk_delete]
 ; cmd=P:\Programy\AutoHotkey\v2\AutoHotkey64.exe
 ; param="P:\Programy\zSkripty\AHK\Já\Del.ahk" /tcbutton %UL
-; menu=Trvalé smazání přes AHK
+; menu=AHK Delete
 ;
-; Chovani:
-; - hlavni trvala instance AHK bezi:
-;     - vyber jen ze skutecne lokalnich disku = trvale smazani bez Kose
-;     - NAS / skutecna sitova cesta / smiseny vyber = normalni mazani Total Commanderu
-; - hlavni trvala instance AHK nebezi:
-;     - klavesa Del se nechytá vubec
-;     - tlacitko TC pres /tcbutton pouze posle normalni Delete do Total Commanderu
-; - AHK nikdy nepouziva nahradni kos _AHK_Kos.
+; Stejne parametry pouzij i pro rychle tlacitko v TC:
+;
+; Prikaz:
+; P:\Programy\AutoHotkey\v2\AutoHotkey64.exe
+;
+; Parametry:
+; "P:\Programy\zSkripty\AHK\Já\Del.ahk" /tcbutton %UL
+;
+; CHOVANI:
+;
+; - hlavni trvala instance Del.ahk BEZI:
+;     lokalni disk = smazat trvale bez Kose
+;     sitovy disk / NAS = normalni mazani Total Commanderu
+;
+; - hlavni trvala instance Del.ahk NEBEZI:
+;     vse = normalni mazani Total Commanderu
+;
+; ZADNY nahradni kos se nepouziva.
+; ZADNY FileRecycle se nepouziva.
+; ZADNY AHK keyboard hook pro Delete se nepouziva.
 ;
 ; ============================================================
 
 APP_TITLE := "AHK_DEL_JAKO_SHIFT_DEL_TC_EXPLORER"
-
 MAIN_MUTEX_NAME := "Local\AHK_DEL_TC_EXPLORER_MAIN_MUTEX"
 MAIN_MUTEX_HANDLE := 0
-
 STATE_FILE := A_Temp "\AHK_DEL_JAKO_SHIFT_DEL_TC_EXPLORER.state"
 SCRIPT_IS_MAIN_INSTANCE := false
 MAIN_STATE_MAX_AGE_SECONDS := 4
@@ -82,9 +96,42 @@ VLC_HTTP_PASSWORD := "1"
 ; ============================================================
 
 VLC_FULLSCREEN_TIME_OSD := true
+; OSD je dole, ale posunute vyse nad titulky, aby neprekryvalo titulky ve VLC.
+; Moznosti: "top" nebo "bottom".
+; Pro posun jeste vyse zvys VLC_OSD_BOTTOM_MARGIN, pro posun nize ho sniz.
+VLC_OSD_POSITION := "bottom"
+VLC_OSD_TOP_MARGIN := 80
+VLC_OSD_BOTTOM_MARGIN := 270
 VLC_OSD_GUI := 0
 VLC_OSD_TEXT := 0
 VLC_OSD_LAST_TEXT := ""
+
+
+; ============================================================
+; SCHRANKA WINDOWS -> FIREFOX ANONYMNÍ OKNO -> STAZENI
+; ============================================================
+;
+; Funkce převzatá z link.ahk a sloučená do hlavní trvalé instance.
+; - hlida schranku Windows
+; - kdyz se do schranky dostane http/https odkaz
+; - otevre ho ve Firefoxu v anonymnim rezimu pres -private-window
+; - potom vrati focus zpet do puvodniho okna
+;
+; Hotkeys:
+; Ctrl + Alt + P = pozastavit / spustit pouze predavani odkazu
+; Ctrl + Alt + Q = ukoncit cely hlavni skript
+; Ctrl + Alt + V = diagnostika VLC
+;
+; ============================================================
+
+ClipboardLinkEnabled := true
+LastClipboardUrl := ""
+LastClipboardUrlTime := 0
+FirefoxExePath := "C:\Program Files\Mozilla Firefox\firefox.exe"
+ClipboardDuplicateBlockMs := 3000
+ClipboardRestoreFocusDelayMs := 500
+ClipboardRestoreFocusAttempts := 12
+ClipboardRestoreFocusAttemptDelayMs := 150
 
 arg1 := ""
 arg2 := ""
@@ -107,62 +154,73 @@ if (arg1 = "/tctest" || arg1 = "tctest") {
 }
 
 ; ============================================================
-; JEDNORAZOVE VOLANI Z TLACITKA TOTAL COMMANDERU
+; JEDNORAZOVE VOLANI Z TLACITKA / HOTKEY TOTAL COMMANDERU
 ; ============================================================
-;
-; Logika:
-; - kdyz hlavni trvala instance tohoto AHK BEZI:
-;     - pokud jsou vsechny vybrane polozky skutecne lokalni, smaze je trvale bez Kose
-;     - pokud je mezi nimi NAS / skutecna sitova cesta, pusti se normalni mazani TC
-; - kdyz hlavni trvala instance tohoto AHK NEBEZI:
-;     - pusti se normalni mazani TC, jako kdyby zadny AHK nebyl
-;
-; AHK v teto vetvi NIKDY nepouziva nahradni kos.
-;
 
 if (arg1 = "/tcbutton" || arg1 = "tcbutton") {
-    mainIsRunning := IsMainInstanceEnabled(false)
-    hwnd := GetTotalCommanderHwnd()
-
-    if !hwnd {
-        ExitApp
-    }
-
-    ; Pokud hlavni instance nebezi, tlacitko se ma chovat normalne jako TC Delete.
-    if !mainIsRunning {
-        SendNormalDeleteToTotalCommander(hwnd)
-        ExitApp
-    }
-
-    paths := []
-
-    if (arg2 != "") {
-        paths := GetPathsFromTcListFile(arg2)
-    }
-
-    if (paths.Length = 0) {
-        try WinActivate "ahk_id " hwnd
-        try WinWaitActive "ahk_id " hwnd, , 2
-        Sleep 80
-        paths := GetSelectedPathsFromTC(hwnd)
-    }
-
-    ; Hlavni instance bezi, ale trvale mazeme jen skutecne lokalni cesty.
-    ; NAS / sitove cesty nechame na normalnim TC mazani.
-    normalizedPaths := NormalizeAndFilterPaths(paths)
-    localDeletePaths := GetLocalPermanentDeletePaths(normalizedPaths)
-
-    if (normalizedPaths.Length > 0 && localDeletePaths.Length = normalizedPaths.Length) {
-        DeletePathsNoAsk(localDeletePaths, true)
-        Sleep 150
-        RefreshFileManager(hwnd)
-    } else {
-        SendNormalDeleteToTotalCommander(hwnd)
-    }
-
+    HandleTotalCommanderDeleteButton(arg2)
     ExitApp
 }
 
+HandleTotalCommanderDeleteButton(listFileArg) {
+    hwnd := GetTotalCommanderHwnd()
+
+    if !hwnd {
+        MsgBox "Skript byl spusten, ale nenasel jsem okno Total Commanderu.", "AHK Delete", "Iconx"
+        return
+    }
+
+    mainRunning := IsMainInstanceEnabled(false)
+
+    ; Kdyz hlavni AHK nebezi, chovej se presne jako normalni TC mazani.
+    if !mainRunning {
+        RunTotalCommanderNormalDelete(hwnd)
+        return
+    }
+
+    ; Hlavni AHK bezi. TC musi predat vyber pres %UL.
+    ; Pokud seznam nejde nacist, radsi nic nemažeme, aby se omylem nesmazala dalsi polozka.
+    paths := []
+
+    if (Trim(listFileArg) != "") {
+        paths := GetPathsFromTcListFile(listFileArg)
+    }
+
+    if (paths.Length = 0) {
+        TrayTip "AHK Delete", "Nepodarilo se nacist vyber z Total Commanderu pres %UL. Nic jsem nesmazal.", 4
+        return
+    }
+
+    ; Trvale mazeme jen lokalni disky. Sit/NAS nechame na normalnim TC mazani.
+    if !AreAllPathsLocalForPermanentDelete(paths) {
+        RunTotalCommanderNormalDelete(hwnd)
+        return
+    }
+
+    if DeletePathsPermanent(paths) {
+        Sleep 80
+        RefreshFileManager(hwnd)
+    }
+}
+
+RunTotalCommanderNormalDelete(hwnd) {
+    if !hwnd {
+        return false
+    }
+
+    try {
+        WinActivate "ahk_id " hwnd
+        WinWaitActive "ahk_id " hwnd, , 1
+    }
+
+    ; WM_USER+51 = 1075, cm_Delete = 908
+    try {
+        SendMessage 1075, 908, 0, , "ahk_id " hwnd
+        return true
+    } catch {
+        return false
+    }
+}
 
 ; ============================================================
 ; HLAVNI SPUSTENI BEZ PARAMETRU
@@ -179,7 +237,10 @@ OnExit(CleanupOnExit)
 
 DllCall("SetWindowText", "Ptr", A_ScriptHwnd, "Str", APP_TITLE)
 
-TrayTip "Tiché mazání", "Zapnuto. Pouze lokální položky v TC maže trvale. NAS/síť nechává normálně na TC.", 3
+SetupCombinedTrayMenu()
+OnClipboardChange(ClipboardChanged)
+
+TrayTip "AHK Delete + odkazy", "Zapnuto. TC Delete/tlacitko: lokalni disky trvale, sit/NAS normalne pres TC. Schránka URL -> anonymní Firefox zapnuta.", 4
 
 SetTimer(CheckActiveWindow, 500)
 SetTimer(UpdateIrfanViewTitles, 100)
@@ -189,162 +250,14 @@ SetTimer(UpdateVlcFullscreenOsd, 500)
 return
 
 ; ============================================================
-; DELETE V TOTAL COMMANDERU
-; ============================================================
-
-#HotIf IsTotalCommanderDeleteHotkeyContext()
-
-$*Del::TcDeleteByKeyboard()
-$*NumpadDel::TcDeleteByKeyboard()
-
-#HotIf
-
-TcDeleteByKeyboard() {
-    static busy := false
-
-    if busy {
-        return
-    }
-
-    busy := true
-
-    try {
-        hwnd := GetTotalCommanderHwnd()
-
-        if !hwnd {
-            PassDeleteThroughFromHotkey()
-            return
-        }
-
-        paths := GetSelectedPathsFromTC(hwnd)
-        normalizedPaths := NormalizeAndFilterPaths(paths)
-        localDeletePaths := GetLocalPermanentDeletePaths(normalizedPaths)
-
-        ; Trvale a bez Kose mazeme jen tehdy, kdyz jsou vsechny vybrane polozky
-        ; skutecne lokalni. Jakmile je ve vyberu NAS/sitova cesta, pusti se normalni TC Delete.
-        if (normalizedPaths.Length > 0 && localDeletePaths.Length = normalizedPaths.Length) {
-            DeletePathsNoAsk(localDeletePaths, true)
-            Sleep 150
-            RefreshFileManager(hwnd)
-        } else {
-            PassDeleteThroughFromHotkey()
-        }
-    } finally {
-        busy := false
-    }
-}
-
-PassDeleteThroughFromHotkey() {
-    ; Diky $ u hotkey se tento Send nechyti znovu stejnou hotkey v tomto skriptu.
-    ; {Blind} zachova Shift/Ctrl/Alt, takze napr. Shift+Del zustane Shift+Del.
-    if InStr(A_ThisHotkey, "NumpadDel") {
-        SendEvent "{Blind}{NumpadDel}"
-    } else {
-        SendEvent "{Blind}{Delete}"
-    }
-}
-
-SendNormalDeleteToTotalCommander(hwnd := 0) {
-    if !hwnd {
-        hwnd := GetTotalCommanderHwnd()
-    }
-
-    if !hwnd {
-        return
-    }
-
-    try WinActivate "ahk_id " hwnd
-    try WinWaitActive "ahk_id " hwnd, , 1
-    Sleep 50
-
-    ; ControlSend neposila globalni fyzickou klavesu, takze zbytecne nespousti
-    ; nasi hlavni Del hotkey. TC si mazani zpracuje normalne sam.
-    try {
-        ControlSend "{Delete}", , "ahk_id " hwnd
-    } catch {
-        SendEvent "{Delete}"
-    }
-}
-
-IsTotalCommanderDeleteHotkeyContext() {
-    if IsTextInputFocused() {
-        return false
-    }
-
-    try hwnd := WinGetID("A")
-    catch {
-        return false
-    }
-
-    return IsTotalCommanderWindow(hwnd)
-}
-
-IsTextInputFocused() {
-    try ctrl := ControlGetFocus("A")
-    catch {
-        return false
-    }
-
-    if (ctrl = "") {
-        return false
-    }
-
-    return RegExMatch(ctrl, "i)(Edit|TEdit|TMyEdit|ComboBox)")
-}
-
-; ============================================================
-; DIAGNOSTIKA TOTAL COMMANDERU
-; Ctrl + Alt + D
-; ============================================================
-
-^!d::TestTcSelectionDebug()
-
-TestTcSelectionDebug() {
-    hwnd := GetTotalCommanderHwnd()
-
-    t1 := A_TickCount
-
-    if hwnd {
-        paths := GetSelectedPathsFromTC(hwnd)
-    } else {
-        paths := []
-    }
-
-    elapsed := A_TickCount - t1
-
-    msg := ""
-    msg .= "Total Commander hwnd: " hwnd "`n"
-    msg .= "Nalezeno položek: " paths.Length "`n"
-    msg .= "Čas zjištění: " elapsed " ms`n"
-    msg .= "Hlavní instance běží: " (IsMainInstanceEnabled(true) ? "ANO" : "NE") "`n"
-    msg .= "Mutex hlavní instance: " (IsMainMutexPresent() ? "ANO" : "NE") "`n"
-    msg .= "Stavový soubor: " STATE_FILE "`n"
-    msg .= "Stavový soubor stav: " GetMainStateAgeText() "`n`n"
-
-    for , p in paths {
-        localResolved := ResolveLocalNetworkPath(p)
-
-        msg .= p "`n"
-        msg .= "Typ disku: " GetPathDriveTypeText(p) "`n"
-
-        if (localResolved != "") {
-            msg .= "Převod na lokální cestu: " localResolved "`n"
-        } else {
-            msg .= "Převod na lokální cestu: nezjištěn`n"
-        }
-
-        msg .= "Náhradní koš: nepoužívá se`n`n"
-    }
-
-    MsgBox msg, "TC debug", "Iconi"
-}
-
-; ============================================================
 ; DIAGNOSTIKA VLC
 ; Ctrl + Alt + V
 ; ============================================================
 
 ^!v::DebugVlcPlaylist()
+
+^!p::ToggleClipboardLinkScript()
+^!q::ExitCombinedScript()
 
 ; ============================================================
 ; IRFANVIEW - RYCHLA AKTUALIZACE TITULKU PO PREPNUTI OBRAZKU
@@ -413,44 +326,45 @@ IrfanTitleRefreshBurst() {
 ; ============================================================
 
 GetPathsFromTcListFile(listFile) {
-    result := []
-
     listFile := Trim(listFile, " `t`r`n" . Chr(34))
 
     if (listFile = "") {
-        return result
+        return []
     }
 
     if !FileExist(listFile) {
-        return result
+        return []
     }
 
-    text := ""
+    ; Total Commander muze %UL ulozit ruznym kodovanim.
+    ; Vratime prvni variantu, ve ktere najdeme realne existujici cesty.
+    encodings := ["UTF-8", "CP0", "UTF-16"]
 
-    try {
-        text := FileRead(listFile, "UTF-16")
-    } catch {
+    for , enc in encodings {
         try {
-            text := FileRead(listFile, "UTF-8")
+            text := FileRead(listFile, enc)
         } catch {
-            try {
-                text := FileRead(listFile)
-            } catch {
-                return result
-            }
+            continue
+        }
+
+        raw := ParsePathLinesFromText(text)
+        paths := NormalizeAndFilterPaths(raw)
+
+        if (paths.Length > 0) {
+            return paths
         }
     }
 
-    Loop Parse text, "`n", "`r" {
-        onePath := Trim(A_LoopField, " `t`r`n" . Chr(34))
-
-        if (onePath != "") {
-            result.Push(onePath)
-        }
+    ; Posledni pokus bez explicitniho kodovani.
+    try {
+        text := FileRead(listFile)
+        raw := ParsePathLinesFromText(text)
+        return NormalizeAndFilterPaths(raw)
+    } catch {
+        return []
     }
-
-    return NormalizeAndFilterPaths(result)
 }
+
 
 GetSelectedPathsFromTC(hwnd := 0) {
     if !hwnd {
@@ -610,46 +524,93 @@ GetClipboardFilePaths() {
 }
 
 ; ============================================================
-; MAZANI
+; MAZANI - POUZE TRVALE MAZANI LOKALNICH CEST
 ; ============================================================
 
-DeletePathsNoAsk(paths, permanentDelete) {
-    ; AHK v teto verzi nikdy nepouziva Kos ani nahradni Kos.
-    ; Tato funkce je urcena jen pro trvale smazani lokalnich polozek.
-    if !permanentDelete {
+AreAllPathsLocalForPermanentDelete(paths) {
+    paths := NormalizeAndFilterPaths(paths)
+
+    if (paths.Length = 0) {
         return false
     }
 
-    paths := GetLocalPermanentDeletePaths(paths)
+    for , path in paths {
+        resolved := ResolveLocalNetworkPath(path)
+
+        if (resolved = "") {
+            resolved := path
+        }
+
+        if IsDangerousRootPath(resolved) {
+            return false
+        }
+
+        if !(FileExist(resolved) || DirExist(resolved)) {
+            return false
+        }
+
+        if IsNetworkPath(resolved) {
+            return false
+        }
+
+        root := GetPathRoot(resolved)
+
+        if (root = "") {
+            return false
+        }
+
+        try {
+            driveType := DriveGetType(root)
+        } catch {
+            return false
+        }
+
+        driveType := StrLower(driveType)
+
+        ; Fixed = bezny lokalni disk. Removable nechavam take povoleny.
+        if !(driveType = "fixed" || driveType = "removable") {
+            return false
+        }
+    }
+
+    return true
+}
+
+DeletePathsPermanent(paths) {
+    paths := NormalizeAndFilterPaths(paths)
 
     if (paths.Length = 0) {
         return false
     }
 
     okAll := true
-    failedMessages := []
+    errorText := ""
 
-    for , path in paths {
+    for , originalPath in paths {
+        path := ResolveLocalNetworkPath(originalPath)
+
+        if (path = "") {
+            path := originalPath
+        }
+
         try {
             DeleteOnePermanent(path)
         } catch as e {
             okAll := false
-            failedMessages.Push(BuildDeleteFailureMessage(path, e, true))
+            errorText .= path "`n" e.Message "`n`n"
         }
     }
 
     if !okAll {
-        ShowDeleteFailureMessages(failedMessages)
+        MsgBox "Nektere polozky se nepodarilo trvale odstranit:`n`n" errorText, "AHK Delete - mazani selhalo", "Iconx"
     }
 
     return okAll
 }
 
 DeleteOnePermanent(path) {
-    path := ResolvePathForPermanentDelete(path)
-
-    if (path = "") {
-        throw Error("Tato cesta neni povolena pro tiche trvale mazani. Pravdepodobne jde o NAS/sitovou cestu nebo nebezpecny koren disku.")
+    if IsDangerousRootPath(path) {
+        throw Error("Nebezpecna cesta - koren disku nebo sdileni: " path)
     }
 
     if DirExist(path) {
@@ -663,387 +624,6 @@ DeleteOnePermanent(path) {
     }
 
     throw Error("Cesta neexistuje: " path)
-}
-
-DeleteOneToRecycleBin(path) {
-    ; Zamerne vypnuto.
-    ; Kdyz hlavni AHK nebezi, ma se pouzit normalni mazani Total Commanderu / Windows,
-    ; nikoli AHK presun do Kose a uz vubec ne nahradni Kos.
-    throw Error("AHK presun do Kose je vypnuty. Pro normalni mazani se pouziva primo Total Commander.")
-}
-
-GetLocalPermanentDeletePaths(paths) {
-    normalized := NormalizeAndFilterPaths(paths)
-    result := []
-    seen := Map()
-
-    for , path in normalized {
-        localPath := ResolvePathForPermanentDelete(path)
-
-        if (localPath = "") {
-            continue
-        }
-
-        key := StrLower(localPath)
-
-        if !seen.Has(key) {
-            seen[key] := true
-            result.Push(localPath)
-        }
-    }
-
-    return result
-}
-
-ResolvePathForPermanentDelete(path) {
-    p := Trim(path, " `t`r`n" . Chr(34))
-
-    if (p = "") {
-        return ""
-    }
-
-    ; Mapovany disk, ktery ve skutecnosti vede na tento pocitac,
-    ; prevede na opravdovou lokalni cestu. Priklad: Y:\ -> D:\Downloads.
-    localResolved := ResolveLocalNetworkPath(p)
-
-    if (localResolved != "" && (FileExist(localResolved) || DirExist(localResolved))) {
-        p := localResolved
-    }
-
-    if IsDangerousRootPath(p) {
-        return ""
-    }
-
-    if !(FileExist(p) || DirExist(p)) {
-        return ""
-    }
-
-    if !IsLocalPathForPermanentDelete(p) {
-        return ""
-    }
-
-    return p
-}
-
-IsLocalPathForPermanentDelete(path) {
-    p := Trim(path, " `t`r`n" . Chr(34))
-
-    if (p = "") {
-        return false
-    }
-
-    ; UNC cesta je lokalni jen tehdy, pokud ji ResolveLocalNetworkPath dokazal prevest.
-    ; Pokud jsme porad na UNC, nechame ji normalnimu TC mazani.
-    if RegExMatch(p, "^\\\\") {
-        return false
-    }
-
-    root := GetPathRoot(p)
-
-    if (root = "") {
-        return false
-    }
-
-    try {
-        driveType := StrLower(DriveGetType(root))
-    } catch {
-        return false
-    }
-
-    ; Network nikdy nemazeme tise/trvale pres AHK.
-    if (driveType = "network") {
-        return false
-    }
-
-    ; Fixed/removable/ramdisk/CDROM jsou lokalni typy z pohledu Windows.
-    ; Prakticky se bude mazat jen pokud FileExist/DirExist projde.
-    return true
-}
-
-ResolvePathForDeleteOperation(path) {
-    ; Kvuli diagnostice chyb vracime stejnou cestu, se kterou se opravdu mazalo.
-    localPath := ResolvePathForPermanentDelete(path)
-
-    if (localPath != "") {
-        return localPath
-    }
-
-    return Trim(path, " `t`r`n" . Chr(34))
-}
-
-BuildDeleteFailureMessage(path, errorObj, permanentDelete) {
-    operationText := "trvale odstranit"
-    resolvedPath := ResolvePathForDeleteOperation(path)
-    lockText := GetLockingProcessText(resolvedPath)
-
-    msg := "Nepodařilo se " operationText " tuto položku:`n"
-    msg .= resolvedPath "`n`n"
-
-    if (lockText != "") {
-        msg .= "Položku pravděpodobně používá tento proces:`n"
-        msg .= lockText "`n`n"
-        msg .= "Ukonči uvedený program nebo v něm zavři daný soubor/složku a akci opakuj."
-    } else {
-        msg .= "Nepodařilo se zjistit konkrétní proces, který položku drží.`n"
-        msg .= "Může ji držet systém, antivirus, Total Commander/plugin, náhled, síťové připojení, nebo chybí oprávnění."
-    }
-
-    msg .= "`n`nDetail chyby:`n" errorObj.Message
-
-    return msg
-}
-
-ShowDeleteFailureMessages(messages) {
-    if (messages.Length = 0) {
-        return
-    }
-
-    maxShown := 5
-    text := ""
-
-    for index, oneMsg in messages {
-        if (index > maxShown) {
-            remaining := messages.Length - maxShown
-            text .= "`n`n... a dalších " remaining " položek."
-            break
-        }
-
-        if (text != "") {
-            text .= "`n`n------------------------------------------------------------`n`n"
-        }
-
-        text .= oneMsg
-    }
-
-    MsgBox text, "Tiché mazání - položku nelze odstranit", "Iconx"
-}
-
-; ============================================================
-; ZJISTENI PROCESU, KTERY DRZI SOUBOR/SLOZKU
-; ============================================================
-
-GetLockingProcessText(path) {
-    resources := GetRestartManagerResources(path, 250)
-
-    if (resources.Length = 0) {
-        return ""
-    }
-
-    processes := GetRestartManagerLockingProcesses(resources)
-
-    if (processes.Length = 0) {
-        return ""
-    }
-
-    lines := []
-    seen := Map()
-
-    for , proc in processes {
-        key := String(proc.PID)
-
-        if seen.Has(key) {
-            continue
-        }
-
-        seen[key] := true
-
-        line := "- " proc.Name "  [PID " proc.PID "]"
-
-        if (proc.ExePath != "") {
-            line .= "`n  " proc.ExePath
-        }
-
-        lines.Push(line)
-    }
-
-    return JoinLines(lines)
-}
-
-GetRestartManagerResources(path, maxFiles := 250) {
-    result := []
-    p := Trim(path, " `t`r`n" . Chr(34))
-
-    if (p = "") {
-        return result
-    }
-
-    if DirExist(p) {
-        ; Zkusime registrovat i samotnou slozku. Nekdy ji drzi proces jako adresar.
-        result.Push(p)
-
-        ; Restart Manager ale nejlepe hlasi konkretni soubory uvnitr slozky.
-        Loop Files, p "\*", "FR" {
-            result.Push(A_LoopFileFullPath)
-
-            if (result.Length >= maxFiles) {
-                break
-            }
-        }
-
-        return result
-    }
-
-    if FileExist(p) {
-        result.Push(p)
-        return result
-    }
-
-    return result
-}
-
-GetRestartManagerLockingProcesses(paths) {
-    result := []
-
-    if (paths.Length = 0) {
-        return result
-    }
-
-    hSession := 0
-    sessionKey := Buffer(256 * 2, 0)
-
-    rmStart := DllCall(
-        "Rstrtmgr\RmStartSession",
-        "UIntP", &hSession,
-        "UInt", 0,
-        "Ptr", sessionKey.Ptr,
-        "UInt"
-    )
-
-    if (rmStart != 0 || hSession = 0) {
-        return result
-    }
-
-    try {
-        pointerArray := Buffer(paths.Length * A_PtrSize, 0)
-        stringBuffers := []
-
-        for index, onePath in paths {
-            chars := StrPut(onePath, "UTF-16")
-            b := Buffer(chars * 2, 0)
-            StrPut(onePath, b.Ptr, chars, "UTF-16")
-            stringBuffers.Push(b)
-            NumPut("Ptr", b.Ptr, pointerArray, (index - 1) * A_PtrSize)
-        }
-
-        rmRegister := DllCall(
-            "Rstrtmgr\RmRegisterResources",
-            "UInt", hSession,
-            "UInt", paths.Length,
-            "Ptr", pointerArray.Ptr,
-            "UInt", 0,
-            "Ptr", 0,
-            "UInt", 0,
-            "Ptr", 0,
-            "UInt"
-        )
-
-        if (rmRegister != 0) {
-            return result
-        }
-
-        needed := 0
-        count := 0
-        rebootReasons := 0
-
-        rmList := DllCall(
-            "Rstrtmgr\RmGetList",
-            "UInt", hSession,
-            "UIntP", &needed,
-            "UIntP", &count,
-            "Ptr", 0,
-            "UIntP", &rebootReasons,
-            "UInt"
-        )
-
-        ERROR_MORE_DATA := 234
-
-        if (rmList != ERROR_MORE_DATA || needed = 0) {
-            return result
-        }
-
-        count := needed
-        RM_PROCESS_INFO_SIZE := 668
-        infoBuf := Buffer(RM_PROCESS_INFO_SIZE * count, 0)
-
-        rmList := DllCall(
-            "Rstrtmgr\RmGetList",
-            "UInt", hSession,
-            "UIntP", &needed,
-            "UIntP", &count,
-            "Ptr", infoBuf.Ptr,
-            "UIntP", &rebootReasons,
-            "UInt"
-        )
-
-        if (rmList != 0) {
-            return result
-        }
-
-        Loop count {
-            base := infoBuf.Ptr + ((A_Index - 1) * RM_PROCESS_INFO_SIZE)
-            pid := NumGet(base, 0, "UInt")
-            appName := StrGet(base + 12, 256, "UTF-16")
-
-            procInfo := GetProcessInfoByPid(pid, appName)
-            result.Push(procInfo)
-        }
-    } finally {
-        try DllCall("Rstrtmgr\RmEndSession", "UInt", hSession, "UInt")
-    }
-
-    return result
-}
-
-GetProcessInfoByPid(pid, fallbackName := "") {
-    name := Trim(fallbackName)
-    exePath := ""
-
-    try {
-        wmi := ComObject("WbemScripting.SWbemLocator")
-        svc := wmi.ConnectServer(".", "root\cimv2")
-        query := "Select Name, ExecutablePath From Win32_Process Where ProcessId=" pid
-
-        for proc in svc.ExecQuery(query) {
-            try {
-                if (Trim(String(proc.Name)) != "") {
-                    name := Trim(String(proc.Name))
-                }
-            }
-
-            try {
-                if (Trim(String(proc.ExecutablePath)) != "") {
-                    exePath := Trim(String(proc.ExecutablePath))
-                }
-            }
-
-            break
-        }
-    } catch {
-    }
-
-    if (name = "") {
-        name := "neznámý proces"
-    }
-
-    return {
-        PID: pid,
-        Name: name,
-        ExePath: exePath
-    }
-}
-
-JoinLines(lines) {
-    text := ""
-
-    for , line in lines {
-        if (text != "") {
-            text .= "`n"
-        }
-
-        text .= line
-    }
-
-    return text
 }
 
 ; ============================================================
@@ -1307,9 +887,7 @@ GetPathDriveTypeText(path) {
     }
 }
 
-GetCustomRecycleRoot(path) {
-    return "NEPOUZIVA SE"
-}
+
 
 GetPathRoot(path) {
     p := Trim(path, " `t`r`n" . Chr(34))
@@ -1325,20 +903,7 @@ GetPathRoot(path) {
     return ""
 }
 
-GetRelativePathFromRoot(path) {
-    p := Trim(path, " `t`r`n" . Chr(34))
-    root := GetPathRoot(p)
 
-    if (root = "") {
-        return GetLeafName(p)
-    }
-
-    if (SubStr(StrLower(p), 1, StrLen(root)) = StrLower(root)) {
-        return SubStr(p, StrLen(root) + 1)
-    }
-
-    return GetLeafName(p)
-}
 
 GetLeafName(path) {
     SplitPath path, &leaf
@@ -1383,20 +948,13 @@ RefreshFileManager(hwnd := 0) {
     }
 
     if IsTotalCommanderWindow(hwnd) {
+        ; 540 = cm_RereadSource
         try {
-            WinActivate "ahk_id " hwnd
-            WinWaitActive "ahk_id " hwnd, , 1
-            Sleep 120
-            Send "{F2}"
-            Sleep 120
-            return
+            SendMessage 1075, 540, 0, , "ahk_id " hwnd
         }
-        catch {
-            try {
-                SendMessage 1075, 540, 0, , "ahk_id " hwnd
-                return
-            }
-        }
+
+        try WinActivate "ahk_id " hwnd
+        return
     }
 
     if IsExplorerWindow(hwnd) {
@@ -1598,6 +1156,7 @@ CleanupOnExit(ExitReason, ExitCode) {
     DeleteMainStateFile()
     CloseMainMutex()
     HideVlcOsd()
+    HideClipboardToolTip()
 }
 
 IsMainInstanceEnabled(allowCurrent := false) {
@@ -1743,9 +1302,15 @@ CloseExistingMainInstance() {
 ; ============================================================
 
 CheckActiveWindow() {
+    static lastWinId := 0
+
     try {
         winId := WinGetID("A")
     } catch {
+        return
+    }
+
+    if (winId = lastWinId) {
         return
     }
 
@@ -1771,7 +1336,10 @@ CheckActiveWindow() {
     ) {
         try WinMaximize "ahk_id " winId
     }
+
+    lastWinId := winId
 }
+
 
 ; ============================================================
 ; IRFANVIEW - POZICE SOUBORU MISTO ZOOMU
@@ -2272,6 +1840,9 @@ ShowVlcOsd(text) {
     global VLC_OSD_GUI
     global VLC_OSD_TEXT
     global VLC_OSD_LAST_TEXT
+    global VLC_OSD_POSITION
+    global VLC_OSD_TOP_MARGIN
+    global VLC_OSD_BOTTOM_MARGIN
 
     CreateVlcOsdIfNeeded()
 
@@ -2282,12 +1853,63 @@ ShowVlcOsd(text) {
 
     w := 660
     h := 58
-    x := Round((A_ScreenWidth - w) / 2)
-    y := A_ScreenHeight - 125
+
+    GetActiveWindowMonitorRect(&monLeft, &monTop, &monRight, &monBottom)
+
+    monW := monRight - monLeft
+    x := monLeft + Round((monW - w) / 2)
+
+    if (StrLower(VLC_OSD_POSITION) = "bottom") {
+        y := monBottom - VLC_OSD_BOTTOM_MARGIN
+    } else {
+        y := monTop + VLC_OSD_TOP_MARGIN
+    }
 
     try {
         VLC_OSD_GUI.Show("NoActivate x" x " y" y " w" w " h" h)
         WinSetTransparent(215, "ahk_id " VLC_OSD_GUI.Hwnd)
+    }
+}
+
+GetActiveWindowMonitorRect(&monLeft, &monTop, &monRight, &monBottom) {
+    monLeft := 0
+    monTop := 0
+    monRight := A_ScreenWidth
+    monBottom := A_ScreenHeight
+
+    try hwnd := WinGetID("A")
+    catch {
+        return
+    }
+
+    try {
+        WinGetPos(&x, &y, &w, &h, "ahk_id " hwnd)
+    } catch {
+        return
+    }
+
+    cx := x + (w / 2)
+    cy := y + (h / 2)
+
+    try monitorCount := MonitorGetCount()
+    catch {
+        monitorCount := 1
+    }
+
+    Loop monitorCount {
+        try {
+            MonitorGet(A_Index, &ml, &mt, &mr, &mb)
+        } catch {
+            continue
+        }
+
+        if (cx >= ml && cx <= mr && cy >= mt && cy <= mb) {
+            monLeft := ml
+            monTop := mt
+            monRight := mr
+            monBottom := mb
+            return
+        }
     }
 }
 
@@ -2404,7 +2026,7 @@ Base64Encode(text) {
     return Trim(out, "`r`n`t ")
 }
 
-DebugVlcPlaylist() {
+DebugVlcPlaylist(*) {
     statusXml := VlcHttpGetXml("/requests/status.xml")
     playlistXml := VlcHttpGetXml("/requests/playlist.xml")
     state := GetVlcPlaylistPosition()
@@ -2455,4 +2077,201 @@ DebugVlcPlaylist() {
     msg .= "`nTitulky VLC oken:`n" titles
 
     MsgBox msg, "VLC debug", "Iconi"
+}
+
+; ============================================================
+; SCHRANKA WINDOWS -> FIREFOX ANONYMNÍ OKNO
+; ============================================================
+
+SetupCombinedTrayMenu() {
+    global ClipboardLinkEnabled
+
+    try A_TrayMenu.Delete()
+
+    if ClipboardLinkEnabled {
+        A_TrayMenu.Add("Pozastavit predavani odkazu", ToggleClipboardLinkScript)
+    } else {
+        A_TrayMenu.Add("Zapnout predavani odkazu", ToggleClipboardLinkScript)
+    }
+
+    A_TrayMenu.Add("Diagnostika VLC", DebugVlcPlaylist)
+    A_TrayMenu.Add()
+    A_TrayMenu.Add("Ukoncit cely skript", ExitCombinedScript)
+
+    if ClipboardLinkEnabled {
+        TraySetIcon("shell32.dll", 220)
+    } else {
+        TraySetIcon("shell32.dll", 109)
+    }
+}
+
+ClipboardChanged(DataType) {
+    global ClipboardLinkEnabled
+
+    if !ClipboardLinkEnabled {
+        return
+    }
+
+    ; 1 = text ve schrance
+    if (DataType != 1) {
+        return
+    }
+
+    SetTimer(ProcessClipboardUrl, -120)
+}
+
+ProcessClipboardUrl() {
+    global LastClipboardUrl
+    global LastClipboardUrlTime
+    global ClipboardDuplicateBlockMs
+
+    try {
+        url := A_Clipboard
+    } catch {
+        return
+    }
+
+    url := CleanClipboardUrl(url)
+
+    if !IsValidClipboardUrl(url) {
+        return
+    }
+
+    now := A_TickCount
+
+    if (url = LastClipboardUrl && now - LastClipboardUrlTime < ClipboardDuplicateBlockMs) {
+        ClipboardShowInfo("Stejny odkaz preskocen.")
+        return
+    }
+
+    LastClipboardUrl := url
+    LastClipboardUrlTime := now
+
+    SendUrlToPrivateFirefox(url)
+}
+
+CleanClipboardUrl(url) {
+    url := Trim(url)
+
+    ; Pokud je ve schrance vice radku, vezme se jen prvni.
+    url := RegExReplace(url, "[\r\n].*$", "")
+
+    ; Odstrani uvozovky na zacatku/konci.
+    url := RegExReplace(url, "^[`"']+", "")
+    url := RegExReplace(url, "[`"']+$", "")
+
+    ; Odstrani pripadne < >.
+    url := RegExReplace(url, "^<+", "")
+    url := RegExReplace(url, ">+$", "")
+
+    return Trim(url)
+}
+
+IsValidClipboardUrl(text) {
+    text := Trim(text)
+
+    if (text = "") {
+        return false
+    }
+
+    if RegExMatch(text, "i)^https?://[^\s]+$") {
+        return true
+    }
+
+    return false
+}
+
+SendUrlToPrivateFirefox(url) {
+    global FirefoxExePath
+    global ClipboardRestoreFocusDelayMs
+
+    originalHwnd := 0
+
+    try {
+        originalHwnd := WinGetID("A")
+    } catch {
+        originalHwnd := 0
+    }
+
+    if !FileExist(FirefoxExePath) {
+        ClipboardShowInfo("CHYBA:`nFirefox nebyl nalezen zde:`n" FirefoxExePath)
+        return
+    }
+
+    ClipboardShowInfo("Odkaz zachycen.`nPredavam do anonymniho Firefoxu...")
+
+    command := ClipboardQuote(FirefoxExePath) " -private-window " ClipboardQuote(url)
+
+    try {
+        Run(command, , "Hide")
+    } catch {
+        ClipboardShowInfo("CHYBA:`nNepodarilo se predat odkaz do anonymniho Firefoxu.")
+        return
+    }
+
+    Sleep ClipboardRestoreFocusDelayMs
+    RestoreOriginalWindowAfterClipboardUrl(originalHwnd)
+
+    ClipboardShowInfo("Odkaz predan do anonymniho Firefoxu.`nFocus vracen zpet.")
+}
+
+RestoreOriginalWindowAfterClipboardUrl(originalHwnd) {
+    global ClipboardRestoreFocusAttempts
+    global ClipboardRestoreFocusAttemptDelayMs
+
+    if !originalHwnd {
+        return
+    }
+
+    Loop ClipboardRestoreFocusAttempts {
+        if !WinExist("ahk_id " originalHwnd) {
+            return
+        }
+
+        try WinActivate("ahk_id " originalHwnd)
+
+        Sleep ClipboardRestoreFocusAttemptDelayMs
+
+        try {
+            activeHwnd := WinGetID("A")
+        } catch {
+            activeHwnd := 0
+        }
+
+        if (activeHwnd = originalHwnd) {
+            return
+        }
+    }
+}
+
+ToggleClipboardLinkScript(*) {
+    global ClipboardLinkEnabled
+
+    ClipboardLinkEnabled := !ClipboardLinkEnabled
+    SetupCombinedTrayMenu()
+
+    if ClipboardLinkEnabled {
+        ClipboardShowInfo("Predavani odkazu do anonymniho Firefoxu je zapnute.")
+    } else {
+        ClipboardShowInfo("Predavani odkazu do anonymniho Firefoxu je pozastavene.")
+    }
+}
+
+ExitCombinedScript(*) {
+    ClipboardShowInfo("Skript ukoncen.")
+    Sleep 500
+    ExitApp
+}
+
+ClipboardQuote(text) {
+    return Chr(34) text Chr(34)
+}
+
+ClipboardShowInfo(text) {
+    ToolTip(text)
+    SetTimer(HideClipboardToolTip, -2500)
+}
+
+HideClipboardToolTip() {
+    ToolTip()
 }
