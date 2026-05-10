@@ -1,4 +1,4 @@
-#Requires AutoHotkey v2.0
+﻿#Requires AutoHotkey v2.0
 #SingleInstance Force
 DetectHiddenWindows True
 
@@ -6,7 +6,7 @@ DEL_SCRIPT := "P:\Programy\zSkripty\AHK\Já\Del.ahk"
 KOMPLET_SCRIPT := "P:\Programy\zSkripty\AHK\Já\Komplet.ahk"
 AHK_EXE := A_AhkPath
 STATE_FILE := A_Temp "\ahk_prepinac_state.txt" ; format: mode|pid
-LOG_FILE := "P:\Programy\zSkripty\AHK\Já\Logy + prepinac\Testovaci soubory\prepinac_log.txt"
+LOG_FILE := "P:\Programy\zSkripty\AHK\Já\Logy\prepinac_log.txt"
 LOG_ENABLED := true
 
 SOURCE_FOLDER := "P:\Programy\zSkripty\AHK\Já\Logy + prepinac\Testovaci soubory\"

@@ -1,4 +1,4 @@
-#Requires AutoHotkey v2.0
+﻿#Requires AutoHotkey v2.0
 
 ; A: a Y: už nepřemapovávat na lokální cesty.
 ; Pro test se nechávají jako síťové mapy/UNC.
@@ -9,7 +9,7 @@ TC_DELETE_PARAM_KOMPLET := '"' A_ScriptFullPath '" /tcbutton %UL'
 TC_DELETE_PARAM_DEL := '"P:\Programy\zSkripty\AHK\Já\Del.ahk" /tcbutton %UL'
 TC_DELETE_DEBUG_LOG := "P:\Programy\zSkripty\AHK\Já\Logy\komplet_tc_delete.log"
 TC_DELETE_DEBUG_ENABLED := true
-KOMPLET_MAIN_LOG := A_Temp "\komplet_main_lifecycle.log"
+KOMPLET_MAIN_LOG := "P:\Programy\zSkripty\AHK\Já\Logy\komplet_main_lifecycle.log"
 
 ; TC tlacitko/hotkey: Komplet.ahk /tcbutton %UL
 if (A_Args.Length >= 1) {

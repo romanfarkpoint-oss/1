@@ -2,10 +2,10 @@
 #SingleInstance Off ; musi zustat Off kvuli jednorazovemu spousteni z Total Commanderu pres /tcbutton
 #MaxThreadsPerHotkey 1
 Persistent
-SendMode "Input"
+SendMode "Event"
 DetectHiddenWindows True
 SetTitleMatchMode 2
-SetKeyDelay 0, 0
+SetKeyDelay 30, 30
 
 ; ============================================================
 ; HOMESCAPES KONTROLA HLASITOSTI
