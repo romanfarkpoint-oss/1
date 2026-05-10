@@ -606,11 +606,12 @@ AreAllPathsLocalForPermanentDelete(paths) {
     }
 
     for , path in paths {
-        ; Trvale mazani povol jen pokud cesta zacina C:\, D:\ nebo E:\
-        ; Vse ostatni (UNC, jine jednotky, relativni cesty) jde normalnim mazanim TC.
+        ; Trvale mazani povol jen pokud cesta zacina E:\
+        ; Vse ostatni (A:/Y:/C:/D:/P:, UNC, jine jednotky, relativni cesty)
+        ; se netrvale maze pres Kos / fallback.
         resolved := path
 
-        if !RegExMatch(resolved, "i)^D:\\") {
+        if !RegExMatch(resolved, "i)^E:\\") {
             return false
         }
 

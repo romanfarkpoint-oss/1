@@ -574,13 +574,9 @@ HandleTcDeleteAyRecycle(listFileArg) {
         TcDeleteLog("resolved=" resolved)
 
         if (resolved = "") {
-            TcDeleteLog("resolved empty -> silent direct delete on original path")
-            if !DeletePathSilentNoPrompt(p) {
-                TcDeleteLog("silent direct delete failed -> TC normal delete")
-                RunTcNormalDeleteSimple(hwnd)
-                return
-            }
-            continue
+            TcDeleteLog("resolved empty -> TC normal delete (bez primeho mazani)")
+            RunTcNormalDeleteSimple(hwnd)
+            return
         }
 
         try FileRecycle resolved
