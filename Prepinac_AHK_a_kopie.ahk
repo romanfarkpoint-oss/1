@@ -40,10 +40,24 @@ main() {
     ClearRecycleTargets()
     DeleteHardFolder(HARD_DELETE_DIR)
     EmptyWindowsRecycleBin()
+    RefreshTotalCommanderPanels()
     Log("=== END OK ===")
     TrayTip "AHK přepínač", "Hotovo: přepnuto, zkopírováno, vyčištěno.", 4
     Sleep 1200
     ExitApp
+}
+
+RefreshTotalCommanderPanels() {
+    ; Obnov oba panely v Total Commanderu po dokončení akcí.
+    ; WM_USER+51 = 1075
+    ; cm_RereadSource = 540, cm_RereadTarget = 541
+    tcList := WinGetList("ahk_class TTOTAL_CMD")
+    for , hwnd in tcList {
+        try {
+            SendMessage 1075, 540, 0, , "ahk_id " hwnd
+            SendMessage 1075, 541, 0, , "ahk_id " hwnd
+        }
+    }
 }
 
 ToggleScripts() {
