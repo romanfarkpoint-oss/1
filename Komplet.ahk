@@ -1,8 +1,7 @@
 #Requires AutoHotkey v2.0
 
-; Přemapování A: a Y: na lokální cesty (místo síťových map).
-; Hodnoty jsou drženy konzistentně s Del.ahk (A:->C:\Users\R\A, Y:->D:\Downloads).
-Run 'p:\Programy\zSkripty\AHK\Já\A + Y = Lokalní připojení místo síťového.cmd'
+; A: a Y: už nepřemapovávat na lokální cesty.
+; Pro test se nechávají jako síťové mapy/UNC.
 
 TC_DELETE_COMMAND := "em_ahk_delete"
 TC_DELETE_EXE := A_AhkPath
