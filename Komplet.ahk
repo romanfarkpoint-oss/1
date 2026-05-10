@@ -573,9 +573,13 @@ HandleTcDeleteAyRecycle(listFileArg) {
         TcDeleteLog("resolved=" resolved)
 
         if (resolved = "") {
-            TcDeleteLog("resolved empty -> TC normal delete")
-            RunTcNormalDeleteSimple(hwnd)
-            return
+            TcDeleteLog("resolved empty -> silent direct delete on original path")
+            if !DeletePathSilentNoPrompt(p) {
+                TcDeleteLog("silent direct delete failed -> TC normal delete")
+                RunTcNormalDeleteSimple(hwnd)
+                return
+            }
+            continue
         }
 
         try FileRecycle resolved
@@ -589,6 +593,27 @@ HandleTcDeleteAyRecycle(listFileArg) {
     ; Po uspesnem FileRecycle neni potreba panel nasilne prepinat/rereadovat.
     ; Rucni reread nekdy zpusobil skok panelu na C:\.
     Sleep 80
+}
+
+DeletePathSilentNoPrompt(path) {
+    p := Trim(path, " `t`r`n" . Chr(34))
+    if (p = "")
+        return false
+
+    try {
+        if DirExist(p) {
+            DirDelete p, true
+            return true
+        }
+        if FileExist(p) {
+            FileDelete p
+            return true
+        }
+    } catch {
+        return false
+    }
+
+    return false
 }
 
 TcDeleteLog(msg) {
