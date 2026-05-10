@@ -223,7 +223,8 @@ CheckActiveWindow() {
 
 ; === Rambox start, maximalizace a zavření přes Alt+F4 ===
 ; === Rambox start, maximalizace a zavření ===
-SetTimer(StartRambox, -1000)
+; Rambox autostart zrusen na pozadani.
+; SetTimer(StartRambox, -1000)
 
 StartRambox() {
     RamboxExe := "C:\Program Files\Rambox\Rambox.exe"
@@ -584,12 +585,44 @@ HandleTcDeleteAyRecycle(listFileArg) {
     ; V Komplet modu se nic nema mazat trvale.
     ; NAS/B/M/T/X/Z + fallback (a cokoliv mimo recycle bucket) nechame na TC.
     if (plan.Tc.Length > 0) {
+        if plan.BDriveTouched {
+            LogBRecycleBinDeepSnapshot("before_tc_delete")
+        }
         RunTcNormalDeleteSimple(hwnd)
+        if plan.BDriveTouched {
+            LogBRecycleBinDeepSnapshot("after_tc_delete")
+        }
     }
 
     if plan.BDriveTouched {
         LogBRecycleBinStateKomplet()
     }
+}
+
+LogBRecycleBinDeepSnapshot(stage := "") {
+    recycleRoot := "B:\zPC\$RECYCLE.BIN"
+    stamp := FormatTime(A_Now, "yyyy-MM-dd HH:mm:ss")
+    TcDeleteLog("B recycle DEEP begin | stage=" stage " | ts=" stamp " | root=" recycleRoot)
+    if !DirExist(recycleRoot) {
+        TcDeleteLog("B recycle DEEP | root missing")
+        return
+    }
+
+    count := 0
+    totalBytes := 0
+    Loop Files, recycleRoot "\*", "FR" {
+        count += 1
+        sz := A_LoopFileSize + 0
+        totalBytes += sz
+        mod := ""
+        crt := ""
+        attr := ""
+        try mod := FileGetTime(A_LoopFilePath, "M")
+        try crt := FileGetTime(A_LoopFilePath, "C")
+        try attr := FileGetAttrib(A_LoopFilePath)
+        TcDeleteLog("B recycle DEEP item | path=" A_LoopFilePath " | size=" sz " | attr=" attr " | ctime=" crt " | mtime=" mod)
+    }
+    TcDeleteLog("B recycle DEEP end | files=" count " | bytes=" totalBytes)
 }
 
 BuildKompletDeletePlan(paths) {
@@ -611,7 +644,7 @@ BuildKompletDeletePlan(paths) {
 
 ClassifyKompletDeleteBucket(path) {
     if !RegExMatch(path, "i)^([A-Z]):\\", &m)
-        return "tc"
+        return "recycle"
 
     d := StrUpper(m[1])
     if (d = "B" || d = "M" || d = "T" || d = "X" || d = "Z")
@@ -621,12 +654,8 @@ ClassifyKompletDeleteBucket(path) {
     if (d = "C" || d = "D" || d = "P" || d = "E")
         return "recycle"
 
-    ; Ostatni sitove/UNC cesty radeji pres TC.
-    if IsNetworkPathSimple(path)
-        return "tc"
-
-    ; ostatni pismenka pres TC.
-    return "tc"
+    ; Ostatni sitove/UNC a nove jednotky (napr. L:) standardne do Windows Kose.
+    return "recycle"
 }
 
 DeletePathsToRecycleBinSimple(paths) {

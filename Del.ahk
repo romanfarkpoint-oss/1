@@ -257,16 +257,16 @@ BuildDeletePlan(paths) {
 ClassifyDeleteBucket(path) {
     p := Trim(path, " `t`r`n" . Chr(34))
 
-    ; V Del modu: trvale mazat jen E:\. Vse ostatni do Kose.
-    if IsNetworkPath(p)
-        return "recycle"
-
     if !RegExMatch(p, "i)^([A-Z]):\\", &m)
         return "fallback"
 
     d := StrUpper(m[1])
     if (d = "E")
         return "permanent"
+
+    ; V Del modu: vse mimo E:\ do Kose.
+    if IsNetworkPath(p)
+        return "recycle"
 
     return "recycle"
 }

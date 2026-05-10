@@ -41,6 +41,7 @@ main() {
     DeleteHardFolder(HARD_DELETE_DIR)
     EmptyWindowsRecycleBin()
     RefreshTotalCommanderPanels()
+    ClearTotalCommanderSelection()
     Log("=== END OK ===")
     TrayTip "AHK přepínač", "Hotovo: přepnuto, zkopírováno, vyčištěno.", 4
     Sleep 1200
@@ -57,6 +58,14 @@ RefreshTotalCommanderPanels() {
             SendMessage 1075, 540, 0, , "ahk_id " hwnd
             SendMessage 1075, 541, 0, , "ahk_id " hwnd
         }
+    }
+}
+
+ClearTotalCommanderSelection() {
+    ; Zrus oznaceni po dokonceni, aby nezustal vybrany spusteny skript.
+    tcList := WinGetList("ahk_class TTOTAL_CMD")
+    for , hwnd in tcList {
+        try ControlSend "{Esc}", , "ahk_id " hwnd
     }
 }
 
