@@ -30,7 +30,6 @@ CheckHomescapes() {
 ; Pokud to nepujde, pouzije tuto tabulku.
 ;
 ; Priklad:
-; LOCAL_MAPPED_DRIVE_OVERRIDES["Y:"] := "D:\Downloads"
 ; LOCAL_MAPPED_DRIVE_OVERRIDES["Z:"] := "E:\Sdilene"
 ;
 ; ============================================================
@@ -82,6 +81,7 @@ MAIN_MUTEX_HANDLE := 0
 STATE_FILE := A_Temp "\AHK_DEL_JAKO_SHIFT_DEL_TC_EXPLORER.state"
 SCRIPT_IS_MAIN_INSTANCE := false
 MAIN_STATE_MAX_AGE_SECONDS := 4
+DEBUG_DELETE_LOG := true
 
 ; ============================================================
 ; VLC HTTP ROZHRANI
@@ -158,49 +158,125 @@ if (arg1 = "/tctest" || arg1 = "tctest") {
 ; ============================================================
 
 if (arg1 = "/tcbutton" || arg1 = "tcbutton") {
+    DebugDeleteLog("tcbutton invoked | arg2=" arg2 " | mainRunning=" (IsMainInstanceEnabled(false) ? "1" : "0"))
     HandleTotalCommanderDeleteButton(arg2)
     ExitApp
 }
 
 HandleTotalCommanderDeleteButton(listFileArg) {
+    DebugDeleteLog("HandleTotalCommanderDeleteButton start | listFileArg=" listFileArg)
     hwnd := GetTotalCommanderHwnd()
 
     if !hwnd {
+        DebugDeleteLog("TC hwnd not found")
         MsgBox "Skript byl spusten, ale nenasel jsem okno Total Commanderu.", "AHK Delete", "Iconx"
         return
     }
 
     mainRunning := IsMainInstanceEnabled(false)
 
-    ; Kdyz hlavni AHK nebezi, chovej se presne jako normalni TC mazani.
-    if !mainRunning {
-        RunTotalCommanderNormalDelete(hwnd)
-        return
-    }
-
-    ; Hlavni AHK bezi. TC musi predat vyber pres %UL.
-    ; Pokud seznam nejde nacist, radsi nic nemažeme, aby se omylem nesmazala dalsi polozka.
+    ; Pro rozhodnuti o mazani potrebujeme vyber pres %UL.
     paths := []
 
     if (Trim(listFileArg) != "") {
         paths := GetPathsFromTcListFile(listFileArg)
     }
+    DebugDeleteLog("paths loaded | count=" paths.Length)
+    for , p in paths {
+        DebugDeleteLog("path=" p)
+    }
 
     if (paths.Length = 0) {
+        DebugDeleteLog("no paths parsed from %UL")
         TrayTip "AHK Delete", "Nepodarilo se nacist vyber z Total Commanderu pres %UL. Nic jsem nesmazal.", 4
         return
     }
 
-    ; Trvale mazeme jen lokalni disky. Sit/NAS nechame na normalnim TC mazani.
-    if !AreAllPathsLocalForPermanentDelete(paths) {
+    ; Kdyz hlavni AHK nebezi, nikdy netlacit permanentni mazani.
+    ; Zkusime Kos, a kdyz to nepujde, fallback na bezne TC mazani.
+    if !mainRunning {
+        if AreAnyPathsNetworkDrive(paths) {
+            DebugDeleteLog("main OFF + network drive => RunTotalCommanderNormalDelete")
+            RunTotalCommanderNormalDelete(hwnd)
+            return
+        }
+
+        DebugDeleteLog("main OFF => try recycle first")
+
+        if DeletePathsToRecycleBin(paths) {
+            DebugDeleteLog("main OFF recycle OK")
+            Sleep 80
+            RefreshFileManager(hwnd)
+            return
+        }
+
+        DebugDeleteLog("main OFF recycle failed => RunTotalCommanderNormalDelete")
         RunTotalCommanderNormalDelete(hwnd)
         return
     }
 
+    ; Trvale mazeme jen C:/D:/E:.
+    ; Vse ostatni zkusime dat primo do Kose (bez TC permanent dialogu),
+    ; a kdyz to nepujde, teprve potom pouzijeme normalni TC mazani.
+    if !AreAllPathsLocalForPermanentDelete(paths) {
+        DebugDeleteLog("non-CDE path => try recycle first")
+        if DeletePathsToRecycleBin(paths) {
+            DebugDeleteLog("recycle OK")
+            Sleep 80
+            RefreshFileManager(hwnd)
+            return
+        }
+
+        DebugDeleteLog("recycle failed => RunTotalCommanderNormalDelete")
+        RunTotalCommanderNormalDelete(hwnd)
+        return
+    }
+
+    DebugDeleteLog("CDE eligible => permanent delete")
     if DeletePathsPermanent(paths) {
+        DebugDeleteLog("permanent delete OK")
         Sleep 80
         RefreshFileManager(hwnd)
+    } else {
+        DebugDeleteLog("permanent delete failed")
     }
+}
+
+AreAnyPathsNetworkDrive(paths) {
+    paths := NormalizeAndFilterPaths(paths)
+
+    for , path in paths {
+        root := GetPathRoot(path)
+
+        if (root = "") {
+            if IsNetworkPath(path) {
+                return true
+            }
+            continue
+        }
+
+        try {
+            driveType := StrLower(DriveGetType(root))
+            if (driveType = "network") {
+                return true
+            }
+        } catch {
+            ; kdyz nejde zjistit typ, pokracuj dal
+        }
+    }
+
+    return false
+}
+
+DebugDeleteLog(msg) {
+    global DEBUG_DELETE_LOG
+
+    if !DEBUG_DELETE_LOG {
+        return
+    }
+
+    line := A_Now " | " msg "`n"
+    try FileAppend line, A_Temp "\del_debug.log", "UTF-8"
 }
 
 RunTotalCommanderNormalDelete(hwnd) {
@@ -535,10 +611,12 @@ AreAllPathsLocalForPermanentDelete(paths) {
     }
 
     for , path in paths {
-        resolved := ResolveLocalNetworkPath(path)
+        ; Trvale mazani povol jen pokud cesta zacina C:\, D:\ nebo E:\
+        ; Vse ostatni (UNC, jine jednotky, relativni cesty) jde normalnim mazanim TC.
+        resolved := path
 
-        if (resolved = "") {
-            resolved := path
+        if !RegExMatch(resolved, "i)^D:\\") {
+            return false
         }
 
         if IsDangerousRootPath(resolved) {
@@ -567,8 +645,8 @@ AreAllPathsLocalForPermanentDelete(paths) {
 
         driveType := StrLower(driveType)
 
-        ; Fixed = bezny lokalni disk. Removable nechavam take povoleny.
-        if !(driveType = "fixed" || driveType = "removable") {
+        ; A zaroven pouze pokud jde o fixed disk.
+        if (driveType != "fixed") {
             return false
         }
     }
@@ -586,13 +664,7 @@ DeletePathsPermanent(paths) {
     okAll := true
     errorText := ""
 
-    for , originalPath in paths {
-        path := ResolveLocalNetworkPath(originalPath)
-
-        if (path = "") {
-            path := originalPath
-        }
-
+    for , path in paths {
         try {
             DeleteOnePermanent(path)
         } catch as e {
@@ -1166,16 +1238,62 @@ IsMainInstanceEnabled(allowCurrent := false) {
         return true
     }
 
+    ; Spolehlive povazuj hlavni instanci za bezici jen pokud existuje mutex.
+    ; Stavovy soubor je jen diagnosticky a po padu/ukonceni muze kratce pretrvat.
     if IsMainMutexPresent() {
-        return true
-    }
-
-    if IsFreshMainStateFilePresent() {
         return true
     }
 
     return false
 }
+
+DeletePathsToRecycleBin(paths) {
+    paths := NormalizeAndFilterPaths(paths)
+
+    if (paths.Length = 0) {
+        return false
+    }
+
+    for , path in paths {
+        recycleTarget := path
+
+        ; U sitovych/mapovanych cest preferuj nejdriv lokalne rozresleny cil.
+        ; To pomuze pro mapovani typu \\THISPC\share -> D:\share (lokalni Kos).
+        if IsNetworkPath(path) {
+            localResolved := ResolveLocalNetworkPath(path)
+
+            if (localResolved != "" && localResolved != path) {
+                recycleTarget := localResolved
+                DebugDeleteLog("recycle prefers resolved target | " path " => " recycleTarget)
+            }
+        }
+
+        try {
+            FileRecycle recycleTarget
+            continue
+        } catch as e1 {
+            ; U mapovanych sitovych cest zkus fallback na lokalni cil, pokud jde o lokalni share/mapovani.
+            localResolved := ResolveLocalNetworkPath(path)
+
+            if (localResolved != "" && localResolved != path) {
+                try {
+                    FileRecycle localResolved
+                    DebugDeleteLog("recycle fallback via resolved path OK | " path " => " localResolved)
+                    continue
+                } catch as e2 {
+                    DebugDeleteLog("recycle failed both original/resolved | " path " | e1=" e1.Message " | e2=" e2.Message)
+                    return false
+                }
+            }
+
+            DebugDeleteLog("recycle failed original path | " path " | e=" e1.Message)
+            return false
+        }
+    }
+
+    return true
+}
+
 
 IsFreshMainStateFilePresent() {
     global STATE_FILE
