@@ -82,7 +82,8 @@ MAIN_MUTEX_HANDLE := 0
 STATE_FILE := A_Temp "\AHK_DEL_JAKO_SHIFT_DEL_TC_EXPLORER.state"
 SCRIPT_IS_MAIN_INSTANCE := false
 MAIN_STATE_MAX_AGE_SECONDS := 4
-DEBUG_DELETE_LOG := true
+DEBUG_DELETE_LOG := true ; prepinac logovani
+DEBUG_DELETE_LOG_FILE := "P:\Programy\zSkripty\AHK\Já\Logy\del_tc_delete.log"
 
 ; ============================================================
 ; VLC HTTP ROZHRANI
@@ -262,13 +263,21 @@ AreAllPathsOnProtectedDrives(paths) {
 
 DebugDeleteLog(msg) {
     global DEBUG_DELETE_LOG
+    global DEBUG_DELETE_LOG_FILE
 
     if !DEBUG_DELETE_LOG {
         return
     }
 
     line := A_Now " | " msg "`n"
-    try FileAppend line, A_Temp "\del_debug.log", "UTF-8"
+    try {
+        logDir := RegExReplace(DEBUG_DELETE_LOG_FILE, "\\[^\\]*$")
+        if (logDir != "" && !DirExist(logDir))
+            DirCreate logDir
+        FileAppend line, DEBUG_DELETE_LOG_FILE, "UTF-8"
+    } catch {
+        try FileAppend line, A_Temp "\del_debug.log", "UTF-8"
+    }
 }
 
 RunTotalCommanderNormalDelete(hwnd) {

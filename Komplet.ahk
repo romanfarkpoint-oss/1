@@ -8,7 +8,8 @@ TC_DELETE_COMMAND := "em_ahk_delete"
 TC_DELETE_EXE := A_AhkPath
 TC_DELETE_PARAM_KOMPLET := '"' A_ScriptFullPath '" /tcbutton %UL'
 TC_DELETE_PARAM_DEL := '"P:\Programy\zSkripty\AHK\Já\Del.ahk" /tcbutton %UL'
-TC_DELETE_DEBUG_LOG := A_Temp "\komplet_tc_delete.log"
+TC_DELETE_DEBUG_LOG := "P:\Programy\zSkripty\AHK\Já\Logy\komplet_tc_delete.log"
+TC_DELETE_DEBUG_ENABLED := true
 KOMPLET_MAIN_LOG := A_Temp "\komplet_main_lifecycle.log"
 
 ; TC tlacitko/hotkey: Komplet.ahk /tcbutton %UL
@@ -561,6 +562,8 @@ HandleTcDeleteAyRecycle(listFileArg) {
     TcDeleteLog("Handle start | hwnd=" hwnd)
     paths := GetPathsFromTcListFileSimple(listFileArg)
     TcDeleteLog("paths count=" paths.Length)
+    for , p in paths
+        TcDeleteLog("path=" p)
 
     if (paths.Length = 0) {
         TcDeleteLog("paths empty -> TC normal delete")
@@ -596,8 +599,18 @@ DeletePathSilentNoPrompt(path) {
 
 TcDeleteLog(msg) {
     global TC_DELETE_DEBUG_LOG
+    global TC_DELETE_DEBUG_ENABLED
+    if !TC_DELETE_DEBUG_ENABLED
+        return
     line := A_Now " | " msg "`n"
-    try FileAppend line, TC_DELETE_DEBUG_LOG, "UTF-8"
+    try {
+        logDir := RegExReplace(TC_DELETE_DEBUG_LOG, "\\[^\\]*$")
+        if (logDir != "" && !DirExist(logDir))
+            DirCreate logDir
+        FileAppend line, TC_DELETE_DEBUG_LOG, "UTF-8"
+    } catch {
+        try FileAppend line, A_Temp "\komplet_tc_delete.log", "UTF-8"
+    }
 }
 
 LogKompletMain(msg) {
