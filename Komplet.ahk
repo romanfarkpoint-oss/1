@@ -571,7 +571,7 @@ HandleTcDeleteAyRecycle(listFileArg) {
     }
 
     plan := BuildKompletDeletePlan(paths)
-    TcDeleteLog("delete plan | recycle=" plan.Recycle.Length " | permanent=" plan.Permanent.Length " | tc=" plan.Tc.Length)
+    TcDeleteLog("delete plan | recycle=" plan.Recycle.Length " | tc=" plan.Tc.Length)
 
     if (plan.Recycle.Length > 0) {
         if DeletePathsToRecycleBinSimple(plan.Recycle) {
@@ -581,16 +581,8 @@ HandleTcDeleteAyRecycle(listFileArg) {
         }
     }
 
-    ; V Komplet modu trvale mazat jen E:\ .
-    if (plan.Permanent.Length > 0) {
-        if DeletePathsPermanentSimple(plan.Permanent) {
-            TcDeleteLog("permanent delete OK")
-        } else {
-            TcDeleteLog("permanent delete FAILED")
-        }
-    }
-
-    ; NAS/B/M/T/X/Z a fallback nechame na TC (serverovy kos + kompatibilita).
+    ; V Komplet modu se nic nema mazat trvale.
+    ; NAS/B/M/T/X/Z + fallback (a cokoliv mimo recycle bucket) nechame na TC.
     if (plan.Tc.Length > 0) {
         RunTcNormalDeleteSimple(hwnd)
     }
@@ -601,7 +593,7 @@ HandleTcDeleteAyRecycle(listFileArg) {
 }
 
 BuildKompletDeletePlan(paths) {
-    plan := {Recycle: [], Permanent: [], Tc: [], BDriveTouched: false}
+    plan := {Recycle: [], Tc: [], BDriveTouched: false}
     for , raw in paths {
         p := Trim(raw, " `t`r`n" . Chr(34))
         if (p = "")
@@ -609,8 +601,6 @@ BuildKompletDeletePlan(paths) {
         bucket := ClassifyKompletDeleteBucket(p)
         if (bucket = "recycle")
             plan.Recycle.Push(p)
-        else if (bucket = "permanent")
-            plan.Permanent.Push(p)
         else
             plan.Tc.Push(p)
         if RegExMatch(p, "i)^B:\\")
@@ -630,9 +620,7 @@ ClassifyKompletDeleteBucket(path) {
         return "tc"
 
     d := StrUpper(m[1])
-    if (d = "E")
-        return "permanent"
-    if (d = "C" || d = "D" || d = "P")
+    if (d = "C" || d = "D" || d = "P" || d = "E")
         return "recycle"
     ; B/M/T/X/Z (NAS) i ostatni pismenka pres TC.
     return "tc"
@@ -650,19 +638,6 @@ DeletePathsToRecycleBinSimple(paths) {
             TcDeleteLog("recycle FAIL | " path " => " target " | " e.Message)
             return false
         }
-    }
-    return true
-}
-
-DeletePathsPermanentSimple(paths) {
-    for , path in paths {
-        p := Trim(path, " `t`r`n" . Chr(34))
-        if !RegExMatch(p, "i)^E:\\") {
-            TcDeleteLog("permanent skip non-E | " p)
-            continue
-        }
-        if !DeletePathSilentNoPrompt(p)
-            return false
     }
     return true
 }
