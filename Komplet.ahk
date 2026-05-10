@@ -558,12 +558,16 @@ HasFileClipboard() {
 }
 
 HandleTcDeleteAyRecycle(listFileArg) {
+    auditId := "AUDIT-" A_Now "-" DllCall("GetCurrentProcessId", "UInt")
     hwnd := WinExist("ahk_class TTOTAL_CMD")
     TcDeleteLog("Handle start | hwnd=" hwnd)
     paths := GetPathsFromTcListFileSimple(listFileArg)
+    TcDeleteLog("audit begin | id=" auditId " | listFile=" listFileArg)
     TcDeleteLog("paths count=" paths.Length)
-    for , p in paths
+    for idx, p in paths {
         TcDeleteLog("path=" p)
+        TcDeleteLog("audit path | id=" auditId " | idx=" idx " | path=" p)
+    }
 
     if (paths.Length = 0) {
         TcDeleteLog("paths empty -> TC normal delete")
@@ -595,8 +599,10 @@ HandleTcDeleteAyRecycle(listFileArg) {
     }
 
     if plan.BDriveTouched {
+        TcDeleteLog("audit b-drive touched | id=" auditId)
         LogBRecycleBinStateKomplet()
     }
+    TcDeleteLog("audit end | id=" auditId " | recycle=" plan.Recycle.Length " | tc=" plan.Tc.Length)
 }
 
 LogBRecycleBinDeepSnapshot(stage := "") {

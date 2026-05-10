@@ -140,6 +140,7 @@ ClipboardRestoreFocusAttemptDelayMs := 150
 ; Bezpecnostni prepinac: zachytavani kolecka v IrfanView muze pri rychlem rolovani
 ; v nekterych pripadech zpusobovat pipani Windows. Kdyz je false, hotkeys se nevytvareji.
 ENABLE_IRFAN_WHEEL_HOOKS := false
+ENABLE_IRFAN_TITLE_TRACKING := false
 
 arg1 := ""
 arg2 := ""
@@ -373,7 +374,8 @@ OnClipboardChange(ClipboardChanged)
 TrayTip "AHK Delete + odkazy", "Zapnuto. TC Delete/tlacitko: lokalni disky trvale, sit/NAS normalne pres TC. Schránka URL -> anonymní Firefox zapnuta.", 4
 
 SetTimer(CheckActiveWindow, 500)
-SetTimer(UpdateIrfanViewTitles, 100)
+if ENABLE_IRFAN_TITLE_TRACKING
+    SetTimer(UpdateIrfanViewTitles, 200)
 SetTimer(UpdateVlcTitles, 250)
 SetTimer(UpdateVlcFullscreenOsd, 500)
 
