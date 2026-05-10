@@ -36,9 +36,9 @@ CheckHomescapes() {
 ; ============================================================
 
 LOCAL_MAPPED_DRIVE_OVERRIDES := Map()
-; A: a Y: ponechány jako síťové cesty (UNC), aby se nepřemapovávaly na lokální disky.
-LOCAL_MAPPED_DRIVE_OVERRIDES["A:"] := "\\VELIN\Users\R\A"
-LOCAL_MAPPED_DRIVE_OVERRIDES["Y:"] := "\\VELIN\Downloads"
+; A: a Y: mapujeme na lokalni cesty kvuli Windows Kosi.
+LOCAL_MAPPED_DRIVE_OVERRIDES["A:"] := "C:\Users\R\A"
+LOCAL_MAPPED_DRIVE_OVERRIDES["Y:"] := "D:\Downloads"
 
 ; ============================================================
 ; DEL PRO TOTAL COMMANDER - VARIANTA A

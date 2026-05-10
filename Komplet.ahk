@@ -610,25 +610,28 @@ BuildKompletDeletePlan(paths) {
 }
 
 ClassifyKompletDeleteBucket(path) {
-    ; A/Y jako sitove UNC maji jit do normalniho Windows Kose.
-    if RegExMatch(path, "i)^A:\\") || RegExMatch(path, "i)^Y:\\")
-        return "recycle"
-    if IsNetworkPathSimple(path)
-        return "recycle"
-
     if !RegExMatch(path, "i)^([A-Z]):\\", &m)
         return "tc"
 
     d := StrUpper(m[1])
+    if (d = "B" || d = "M" || d = "T" || d = "X" || d = "Z")
+        return "tc"
+    if (d = "A" || d = "Y")
+        return "recycle"
     if (d = "C" || d = "D" || d = "P" || d = "E")
         return "recycle"
-    ; B/M/T/X/Z (NAS) i ostatni pismenka pres TC.
+
+    ; Ostatni sitove/UNC cesty radeji pres TC.
+    if IsNetworkPathSimple(path)
+        return "tc"
+
+    ; ostatni pismenka pres TC.
     return "tc"
 }
 
 DeletePathsToRecycleBinSimple(paths) {
     for , path in paths {
-        target := ResolveAyToUncPath(path)
+        target := ResolveAyToLocalPath(path)
         if (target = "")
             target := path
         try {
