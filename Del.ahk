@@ -86,6 +86,8 @@ SCRIPT_IS_MAIN_INSTANCE := false
 MAIN_STATE_MAX_AGE_SECONDS := 4
 DEBUG_DELETE_LOG := true ; prepinac logovani
 DEBUG_DELETE_LOG_FILE := "P:\Programy\zSkripty\AHK\Já\Logy\del_tc_delete.log"
+PERF_LOG_ENABLED := true
+PERF_LOG_FILE := "P:\Programy\zSkripty\AHK\Já\Logy\zpozdeni.log"
 
 ; ============================================================
 ; VLC HTTP ROZHRANI
@@ -334,6 +336,31 @@ DebugDeleteLog(msg) {
     }
 }
 
+PerfLog(msg) {
+    global PERF_LOG_ENABLED, PERF_LOG_FILE
+    if !PERF_LOG_ENABLED
+        return
+    line := A_Now " | " msg "`n"
+    try {
+        logDir := RegExReplace(PERF_LOG_FILE, "\\[^\\]*$")
+        if (logDir != "" && !DirExist(logDir))
+            DirCreate logDir
+        FileAppend line, PERF_LOG_FILE, "UTF-8"
+    } catch {
+    }
+}
+
+PerfHeartbeat() {
+    try {
+        title := WinGetTitle("A")
+        proc := WinGetProcessName("A")
+        cls := WinGetClass("A")
+        PerfLog("HB | proc=" proc " | class=" cls " | title=" title)
+    } catch {
+        PerfLog("HB | active unavailable")
+    }
+}
+
 RunTotalCommanderNormalDelete(hwnd) {
     if !hwnd {
         return false
@@ -378,6 +405,7 @@ if ENABLE_IRFAN_TITLE_TRACKING
     SetTimer(UpdateIrfanViewTitles, 200)
 SetTimer(UpdateVlcTitles, 250)
 SetTimer(UpdateVlcFullscreenOsd, 500)
+SetTimer(PerfHeartbeat, 1000)
 
 return
 
@@ -411,6 +439,7 @@ return
 #HotIf
 
 RequestIrfanTitleRefresh() {
+    PerfLog("Irfan refresh requested")
     SetTimer(IrfanTitleRefreshBurst, -10)
 }
 

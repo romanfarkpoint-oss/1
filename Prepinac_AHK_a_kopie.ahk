@@ -55,6 +55,8 @@ RefreshTotalCommanderPanels() {
     tcList := WinGetList("ahk_class TTOTAL_CMD")
     for , hwnd in tcList {
         try {
+            WinActivate "ahk_id " hwnd
+            WinWaitActive "ahk_id " hwnd, , 1
             SendMessage 1075, 540, 0, , "ahk_id " hwnd
             SendMessage 1075, 541, 0, , "ahk_id " hwnd
         }
@@ -65,7 +67,11 @@ ClearTotalCommanderSelection() {
     ; Zrus oznaceni po dokonceni, aby nezustal vybrany spusteny skript.
     tcList := WinGetList("ahk_class TTOTAL_CMD")
     for , hwnd in tcList {
-        try ControlSend "{Esc}", , "ahk_id " hwnd
+        try {
+            ; cm_ClearAll = odznaceni vseho
+            SendMessage 1075, 554, 0, , "ahk_id " hwnd
+            ControlSend "{Esc}", , "ahk_id " hwnd
+        }
     }
 }
 

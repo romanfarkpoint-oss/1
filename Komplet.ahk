@@ -814,5 +814,17 @@ RunTcNormalDeleteSimple(hwnd) {
         return
     try WinActivate "ahk_id " hwnd
     try WinWaitActive "ahk_id " hwnd, , 1
+    SetTimer(AutoConfirmTcDeleteDialog, 80)
     try SendMessage 1075, 908, 0, , "ahk_id " hwnd ; cm_Delete
+    Sleep 250
+    SetTimer(AutoConfirmTcDeleteDialog, 0)
+}
+
+AutoConfirmTcDeleteDialog() {
+    for title in ["Odstranit soubor", "Delete file"] {
+        hwnd := WinExist(title " ahk_class #32770")
+        if hwnd {
+            try ControlSend "{Enter}", , "ahk_id " hwnd
+        }
+    }
 }
