@@ -64,11 +64,11 @@ LOCAL_MAPPED_DRIVE_OVERRIDES["Y:"] := "D:\Downloads"
 ; CHOVANI:
 ;
 ; - hlavni trvala instance Del.ahk BEZI:
-;     lokalni disk = smazat trvale bez Kose
-;     sitovy disk / NAS = normalni mazani Total Commanderu
+;     E: = smazat trvale bez Kose
+;     vse ostatni = normalni mazani Total Commanderu
 ;
 ; - hlavni trvala instance Del.ahk NEBEZI:
-;     vsechny cesty = pokus o presun do Kose, pri chybe fallback na normalni TC mazani
+;     vse = normalni mazani Total Commanderu
 ;
 ; ZADNY nahradni kos se nepouziva.
 ; ZADNY FileRecycle se nepouziva.
@@ -193,49 +193,21 @@ HandleTotalCommanderDeleteButton(listFileArg) {
         return
     }
 
-    ; Kdyz hlavni AHK nebezi, nikdy netlacit permanentni mazani.
-    ; Zkusime Kos, a kdyz to nepujde, fallback na bezne TC mazani.
+    ; Del ma mazat primo jen na E: a jen kdyz bezi hlavni instance.
+    ; Vse ostatni ma jit pres normalni TC delete (tj. podle TC pravidel/Kose).
     if !mainRunning {
-        DebugDeleteLog("main OFF => try recycle first")
-
-        if DeletePathsToRecycleBin(paths) {
-            DebugDeleteLog("main OFF recycle OK")
-            Sleep 80
-            ; Bez rereadu panelu - v nekterych pripadech skakal panel na C:.
-            return
-        }
-
-        DebugDeleteLog("main OFF recycle failed => RunTotalCommanderNormalDelete")
-        if AreAllPathsOnProtectedDrives(paths) {
-            MsgBox "Mazani selhalo: na jednotkach A/C/D/P/Y se ma mazat pres Kos, ne primo.", "AHK Delete", "Iconx"
-            return
-        }
+        DebugDeleteLog("main OFF => TC normal delete")
         RunTotalCommanderNormalDelete(hwnd)
         return
     }
 
-    ; Trvale mazeme jen C:/D:/E:.
-    ; Vse ostatni zkusime dat primo do Kose (bez TC permanent dialogu),
-    ; a kdyz to nepujde, teprve potom pouzijeme normalni TC mazani.
     if !AreAllPathsLocalForPermanentDelete(paths) {
-        DebugDeleteLog("non-CDE path => try recycle first")
-        if DeletePathsToRecycleBin(paths) {
-            DebugDeleteLog("recycle OK")
-            Sleep 80
-            ; Bez rereadu panelu - v nekterych pripadech skakal panel na C:.
-            return
-        }
-
-        DebugDeleteLog("recycle failed => RunTotalCommanderNormalDelete")
-        if AreAllPathsOnProtectedDrives(paths) {
-            MsgBox "Mazani selhalo: na jednotkach A/C/D/P/Y se ma mazat pres Kos, ne primo.", "AHK Delete", "Iconx"
-            return
-        }
+        DebugDeleteLog("non-E path => TC normal delete")
         RunTotalCommanderNormalDelete(hwnd)
         return
     }
 
-    DebugDeleteLog("CDE eligible => permanent delete")
+    DebugDeleteLog("E eligible => permanent delete")
     if DeletePathsPermanent(paths) {
         DebugDeleteLog("permanent delete OK")
         Sleep 80
