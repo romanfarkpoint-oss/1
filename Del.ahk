@@ -35,8 +35,8 @@ CheckHomescapes() {
 ; ============================================================
 
 LOCAL_MAPPED_DRIVE_OVERRIDES := Map()
-; Tento stroj nema NAS mapovane disky (B:/M:/T:/X:/Z:), proto jsou override
-; mapovani schvalne prazdna. Pokud je nekdy budes potrebovat, dopln je sem.
+LOCAL_MAPPED_DRIVE_OVERRIDES["A:"] := "C:\Users\R\A"
+LOCAL_MAPPED_DRIVE_OVERRIDES["Y:"] := "D:\Downloads"
 
 ; ============================================================
 ; DEL PRO TOTAL COMMANDER - VARIANTA A
