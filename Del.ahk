@@ -2,22 +2,23 @@
 #SingleInstance Off ; musi zustat Off kvuli jednorazovemu spousteni z Total Commanderu pres /tcbutton
 #MaxThreadsPerHotkey 1
 Persistent
-SendMode "Event"
+SendMode "Input"
 DetectHiddenWindows True
 SetTitleMatchMode 2
-SetKeyDelay 30, 30
+SetKeyDelay 0, 0
 
 ; ============================================================
 ; HOMESCAPES KONTROLA HLASITOSTI
 ; ============================================================
 
-SetTimer(CheckHomescapes, 5000)
+SetTimer(CheckHomescapes, 15000)
 
 CheckHomescapes() {
     HomescapesPID := ProcessExist("Homescapes.exe")
 
     if (HomescapesPID) {
-        RunWait "P:\Programy\zSkripty\Ostatni\nircmd.exe setappvolume Homescapes.exe 0.24"
+        ; Run misto RunWait = neblokuje vlakno skriptu, snizuje lag pri psani
+        Run "P:\Programy\zSkripty\Ostatni\nircmd.exe setappvolume Homescapes.exe 0.24", , "Hide"
     }
 }
 
@@ -136,6 +137,10 @@ ClipboardRestoreFocusDelayMs := 500
 ClipboardRestoreFocusAttempts := 12
 ClipboardRestoreFocusAttemptDelayMs := 150
 
+; Bezpecnostni prepinac: zachytavani kolecka v IrfanView muze pri rychlem rolovani
+; v nekterych pripadech zpusobovat pipani Windows. Kdyz je false, hotkeys se nevytvareji.
+ENABLE_IRFAN_WHEEL_HOOKS := false
+
 arg1 := ""
 arg2 := ""
 
@@ -195,28 +200,109 @@ HandleTotalCommanderDeleteButton(listFileArg) {
         return
     }
 
-    ; Del ma mazat primo jen na E: a jen kdyz bezi hlavni instance.
-    ; Vse ostatni ma jit pres normalni TC delete (tj. podle TC pravidel/Kose).
+    ; Kdyz hlavni instance nebezi, fallbackni chovani je puvodni mazani TC.
     if !mainRunning {
         DebugDeleteLog("main OFF => TC normal delete")
         RunTotalCommanderNormalDelete(hwnd)
         return
     }
 
-    if !AreAllPathsLocalForPermanentDelete(paths) {
-        DebugDeleteLog("non-E path => TC normal delete")
+    plan := BuildDeletePlan(paths)
+    DebugDeleteLog("delete plan | recycle=" plan.Recycle.Length " | permanent=" plan.Permanent.Length " | fallbackTc=" plan.FallbackTc.Length)
+
+    ; Nejdriv Kos (A/C/D/E/P/Y), potom trvale (B/M/T/X/Z)
+    if (plan.Recycle.Length > 0) {
+        if DeletePathsToRecycleBin(plan.Recycle) {
+            DebugDeleteLog("recycle delete OK")
+        } else {
+            DebugDeleteLog("recycle delete failed")
+        }
+    }
+
+    if (plan.Permanent.Length > 0) {
+        if DeletePathsPermanent(plan.Permanent) {
+            DebugDeleteLog("permanent delete OK")
+        } else {
+            DebugDeleteLog("permanent delete failed")
+        }
+    }
+
+    ; Cokoliv neklasifikovaneho nechame na TC (kompatibilita).
+    if (plan.FallbackTc.Length > 0) {
+        DebugDeleteLog("fallback to TC normal delete for remaining paths")
         RunTotalCommanderNormalDelete(hwnd)
+    }
+
+    ; Diagnostika B:\zPC\$RECYCLE.BIN\ dle pozadavku.
+    if plan.BDriveTouched {
+        LogBRecycleBinState()
+    }
+}
+
+BuildDeletePlan(paths) {
+    plan := {Recycle: [], Permanent: [], FallbackTc: [], BDriveTouched: false}
+    paths := NormalizeAndFilterPaths(paths)
+
+    for , path in paths {
+        bucket := ClassifyDeleteBucket(path)
+        if (bucket = "recycle") {
+            plan.Recycle.Push(path)
+        } else if (bucket = "permanent") {
+            plan.Permanent.Push(path)
+        } else {
+            plan.FallbackTc.Push(path)
+        }
+
+        if RegExMatch(Trim(path, " `t`r`n" . Chr(34)), "i)^B:\\") {
+            plan.BDriveTouched := true
+        }
+    }
+
+    return plan
+}
+
+ClassifyDeleteBucket(path) {
+    p := Trim(path, " `t`r`n" . Chr(34))
+
+    ; UNC/sitove cesty se maji chovat jako mazani do Kose.
+    if IsNetworkPath(p)
+        return "recycle"
+
+    if !RegExMatch(p, "i)^([A-Z]):\\", &m)
+        return "fallback"
+
+    d := StrUpper(m[1])
+    if (d = "A" || d = "C" || d = "D" || d = "E" || d = "P" || d = "Y")
+        return "recycle"
+
+    if (d = "B" || d = "M" || d = "T" || d = "X" || d = "Z")
+        return "permanent"
+
+    return "fallback"
+}
+
+LogBRecycleBinState() {
+    recycleRoot := "B:\zPC\$RECYCLE.BIN"
+    DebugDeleteLog("B recycle snapshot begin | root=" recycleRoot)
+
+    if !DirExist(recycleRoot) {
+        DebugDeleteLog("B recycle snapshot | root missing")
         return
     }
 
-    DebugDeleteLog("E eligible => permanent delete")
-    if DeletePathsPermanent(paths) {
-        DebugDeleteLog("permanent delete OK")
-        Sleep 80
-        ; Bez rereadu panelu - v nekterych pripadech skakal panel na C:.
-    } else {
-        DebugDeleteLog("permanent delete failed")
+    count := 0
+    totalBytes := 0
+
+    Loop Files, recycleRoot "\*", "FR" {
+        count += 1
+        if (A_LoopFileSize != "")
+            totalBytes += A_LoopFileSize
+        if (count <= 60) {
+            DebugDeleteLog("B recycle item | " A_LoopFilePath " | size=" A_LoopFileSize)
+        }
     }
+
+    DebugDeleteLog("B recycle snapshot end | files=" count " | bytes=" totalBytes)
 }
 
 AreAnyPathsNetworkDrive(paths) {
@@ -341,7 +427,7 @@ return
 ; IRFANVIEW - RYCHLA AKTUALIZACE TITULKU PO PREPNUTI OBRAZKU
 ; ============================================================
 
-#HotIf WinActive("ahk_exe i_view64.exe") || WinActive("ahk_exe i_view32.exe")
+#HotIf ENABLE_IRFAN_WHEEL_HOOKS && (WinActive("ahk_exe i_view64.exe") || WinActive("ahk_exe i_view32.exe"))
 
 ~WheelDown::RequestIrfanTitleRefresh()
 ~WheelUp::RequestIrfanTitleRefresh()
