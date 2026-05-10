@@ -35,8 +35,8 @@ CheckHomescapes() {
 ; ============================================================
 
 LOCAL_MAPPED_DRIVE_OVERRIDES := Map()
-LOCAL_MAPPED_DRIVE_OVERRIDES["A:"] := "C:\Users\R\A"
-LOCAL_MAPPED_DRIVE_OVERRIDES["Y:"] := "D:\Downloads"
+; Tento stroj nema NAS mapovane disky (B:/M:/T:/X:/Z:), proto jsou override
+; mapovani schvalne prazdna. Pokud je nekdy budes potrebovat, dopln je sem.
 
 ; ============================================================
 ; DEL PRO TOTAL COMMANDER - VARIANTA A
@@ -68,8 +68,7 @@ LOCAL_MAPPED_DRIVE_OVERRIDES["Y:"] := "D:\Downloads"
 ;     sitovy disk / NAS = normalni mazani Total Commanderu
 ;
 ; - hlavni trvala instance Del.ahk NEBEZI:
-;     sitovy disk / NAS = normalni mazani Total Commanderu
-;     ostatni cesty = pokus o presun do Kose, pri chybe fallback na normalni TC mazani
+;     vsechny cesty = pokus o presun do Kose, pri chybe fallback na normalni TC mazani
 ;
 ; ZADNY nahradni kos se nepouziva.
 ; ZADNY FileRecycle se nepouziva.
@@ -197,12 +196,6 @@ HandleTotalCommanderDeleteButton(listFileArg) {
     ; Kdyz hlavni AHK nebezi, nikdy netlacit permanentni mazani.
     ; Zkusime Kos, a kdyz to nepujde, fallback na bezne TC mazani.
     if !mainRunning {
-        if AreAnyPathsNetworkDrive(paths) {
-            DebugDeleteLog("main OFF + network drive => RunTotalCommanderNormalDelete")
-            RunTotalCommanderNormalDelete(hwnd)
-            return
-        }
-
         DebugDeleteLog("main OFF => try recycle first")
 
         if DeletePathsToRecycleBin(paths) {
