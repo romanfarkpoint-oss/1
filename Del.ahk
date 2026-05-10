@@ -259,7 +259,7 @@ ClassifyDeleteBucket(path) {
     p := Trim(path, " `t`r`n" . Chr(34))
 
     if !RegExMatch(p, "i)^([A-Z]):\\", &m)
-        return "fallback"
+        return "recycle"
 
     d := StrUpper(m[1])
     if (d = "E")
