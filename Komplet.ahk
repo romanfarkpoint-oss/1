@@ -570,16 +570,9 @@ HandleTcDeleteAyRecycle(listFileArg) {
 
     for , p in paths {
         TcDeleteLog("path=" p)
-        resolved := ResolveAyToLocalPath(p)
-        TcDeleteLog("resolved=" resolved)
-
-        if (resolved = "") {
-            TcDeleteLog("resolved empty -> TC normal delete (bez primeho mazani)")
-            RunTcNormalDeleteSimple(hwnd)
-            return
-        }
-
-        try FileRecycle resolved
+        ; Mazani resime primo nad puvodni cestou z TC.
+        ; Tim se vyhneme prepinani panelu na C: pri A:/Y: mapovani.
+        try FileRecycle p
         catch {
             TcDeleteLog("FileRecycle failed -> TC normal delete")
             RunTcNormalDeleteSimple(hwnd)

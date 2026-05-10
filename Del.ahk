@@ -201,7 +201,7 @@ HandleTotalCommanderDeleteButton(listFileArg) {
         if DeletePathsToRecycleBin(paths) {
             DebugDeleteLog("main OFF recycle OK")
             Sleep 80
-            RefreshFileManager(hwnd)
+            ; Bez rereadu panelu - v nekterych pripadech skakal panel na C:.
             return
         }
 
@@ -218,7 +218,7 @@ HandleTotalCommanderDeleteButton(listFileArg) {
         if DeletePathsToRecycleBin(paths) {
             DebugDeleteLog("recycle OK")
             Sleep 80
-            RefreshFileManager(hwnd)
+            ; Bez rereadu panelu - v nekterych pripadech skakal panel na C:.
             return
         }
 
@@ -231,7 +231,7 @@ HandleTotalCommanderDeleteButton(listFileArg) {
     if DeletePathsPermanent(paths) {
         DebugDeleteLog("permanent delete OK")
         Sleep 80
-        RefreshFileManager(hwnd)
+        ; Bez rereadu panelu - v nekterych pripadech skakal panel na C:.
     } else {
         DebugDeleteLog("permanent delete failed")
     }
