@@ -7,7 +7,7 @@ SetKeyDelay(80, 80)
 DetectHiddenWindows True
 
 ; ==========================================================
-; 01 ZACATEK - VERZE PODLE PU VODNIHO FUNKCNIHO FIREFOX POSTUPU
+; 01 ZACATEK - VERZE PODLE PUVODNIHO FUNKCNIHO FIREFOX POSTUPU
 ; ==========================================================
 ; Poradi:
 ;   1) spusti se VPN, pocka 5 sekund a posle se Alt+F4 jen na VPN okno
