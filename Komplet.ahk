@@ -570,9 +570,119 @@ HandleTcDeleteAyRecycle(listFileArg) {
         return
     }
 
-    ; V Komplet rezimu nema byt nikde prime mazani.
-    ; Vsechno nechame na normalnim TC delete toku (Kos/NAS pravidla TC).
-    RunTcNormalDeleteSimple(hwnd)
+    plan := BuildKompletDeletePlan(paths)
+    TcDeleteLog("delete plan | recycle=" plan.Recycle.Length " | permanent=" plan.Permanent.Length " | tc=" plan.Tc.Length)
+
+    if (plan.Recycle.Length > 0) {
+        if DeletePathsToRecycleBinSimple(plan.Recycle) {
+            TcDeleteLog("recycle delete OK")
+        } else {
+            TcDeleteLog("recycle delete FAILED")
+        }
+    }
+
+    ; V Komplet modu trvale mazat jen E:\ .
+    if (plan.Permanent.Length > 0) {
+        if DeletePathsPermanentSimple(plan.Permanent) {
+            TcDeleteLog("permanent delete OK")
+        } else {
+            TcDeleteLog("permanent delete FAILED")
+        }
+    }
+
+    ; NAS/B/M/T/X/Z a fallback nechame na TC (serverovy kos + kompatibilita).
+    if (plan.Tc.Length > 0) {
+        RunTcNormalDeleteSimple(hwnd)
+    }
+
+    if plan.BDriveTouched {
+        LogBRecycleBinStateKomplet()
+    }
+}
+
+BuildKompletDeletePlan(paths) {
+    plan := {Recycle: [], Permanent: [], Tc: [], BDriveTouched: false}
+    for , raw in paths {
+        p := Trim(raw, " `t`r`n" . Chr(34))
+        if (p = "")
+            continue
+        bucket := ClassifyKompletDeleteBucket(p)
+        if (bucket = "recycle")
+            plan.Recycle.Push(p)
+        else if (bucket = "permanent")
+            plan.Permanent.Push(p)
+        else
+            plan.Tc.Push(p)
+        if RegExMatch(p, "i)^B:\\")
+            plan.BDriveTouched := true
+    }
+    return plan
+}
+
+ClassifyKompletDeleteBucket(path) {
+    ; A/Y jako sitove UNC maji jit do normalniho Windows Kose.
+    if RegExMatch(path, "i)^A:\\") || RegExMatch(path, "i)^Y:\\")
+        return "recycle"
+    if IsNetworkPathSimple(path)
+        return "recycle"
+
+    if !RegExMatch(path, "i)^([A-Z]):\\", &m)
+        return "tc"
+
+    d := StrUpper(m[1])
+    if (d = "E")
+        return "permanent"
+    if (d = "C" || d = "D" || d = "P")
+        return "recycle"
+    ; B/M/T/X/Z (NAS) i ostatni pismenka pres TC.
+    return "tc"
+}
+
+DeletePathsToRecycleBinSimple(paths) {
+    for , path in paths {
+        target := ResolveAyToUncPath(path)
+        if (target = "")
+            target := path
+        try {
+            FileRecycle target
+            TcDeleteLog("recycle OK | " path " => " target)
+        } catch as e {
+            TcDeleteLog("recycle FAIL | " path " => " target " | " e.Message)
+            return false
+        }
+    }
+    return true
+}
+
+DeletePathsPermanentSimple(paths) {
+    for , path in paths {
+        p := Trim(path, " `t`r`n" . Chr(34))
+        if !RegExMatch(p, "i)^E:\\") {
+            TcDeleteLog("permanent skip non-E | " p)
+            continue
+        }
+        if !DeletePathSilentNoPrompt(p)
+            return false
+    }
+    return true
+}
+
+LogBRecycleBinStateKomplet() {
+    recycleRoot := "B:\zPC\$RECYCLE.BIN"
+    TcDeleteLog("B recycle snapshot begin | root=" recycleRoot)
+    if !DirExist(recycleRoot) {
+        TcDeleteLog("B recycle snapshot | root missing")
+        return
+    }
+    count := 0
+    totalBytes := 0
+    Loop Files, recycleRoot "\*", "FR" {
+        count += 1
+        totalBytes += A_LoopFileSize
+        if (count <= 60)
+            TcDeleteLog("B recycle item | " A_LoopFilePath " | size=" A_LoopFileSize)
+    }
+    TcDeleteLog("B recycle snapshot end | files=" count " | bytes=" totalBytes)
 }
 
 DeletePathSilentNoPrompt(path) {
@@ -632,6 +742,32 @@ ResolveAyToLocalPath(path) {
     }
 
     return ""
+}
+
+ResolveAyToUncPath(path) {
+    p := Trim(path, " `t`r`n" . Chr(34))
+
+    if RegExMatch(p, "i)^A:\\?(.*)$", &mA) {
+        rest := mA[1]
+        return (rest = "") ? "\\VELIN\Users\R\A" : "\\VELIN\Users\R\A\" rest
+    }
+    if RegExMatch(p, "i)^Y:\\?(.*)$", &mY) {
+        rest := mY[1]
+        return (rest = "") ? "\\VELIN\Downloads" : "\\VELIN\Downloads\" rest
+    }
+    return ""
+}
+
+IsNetworkPathSimple(path) {
+    p := Trim(path, " `t`r`n" . Chr(34))
+    if (SubStr(p, 1, 2) = "\\")
+        return true
+    try {
+        if RegExMatch(p, "i)^([A-Z]:\\)", &m)
+            return (StrLower(DriveGetType(m[1])) = "network")
+    } catch {
+    }
+    return false
 }
 
 

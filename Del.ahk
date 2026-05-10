@@ -210,7 +210,7 @@ HandleTotalCommanderDeleteButton(listFileArg) {
     plan := BuildDeletePlan(paths)
     DebugDeleteLog("delete plan | recycle=" plan.Recycle.Length " | permanent=" plan.Permanent.Length " | fallbackTc=" plan.FallbackTc.Length)
 
-    ; Nejdriv Kos (A/C/D/E/P/Y), potom trvale (B/M/T/X/Z)
+    ; Nejdriv Kos (vse mimo E), potom trvale pouze E:\
     if (plan.Recycle.Length > 0) {
         if DeletePathsToRecycleBin(plan.Recycle) {
             DebugDeleteLog("recycle delete OK")
@@ -233,14 +233,10 @@ HandleTotalCommanderDeleteButton(listFileArg) {
         RunTotalCommanderNormalDelete(hwnd)
     }
 
-    ; Diagnostika B:\zPC\$RECYCLE.BIN\ dle pozadavku.
-    if plan.BDriveTouched {
-        LogBRecycleBinState()
-    }
 }
 
 BuildDeletePlan(paths) {
-    plan := {Recycle: [], Permanent: [], FallbackTc: [], BDriveTouched: false}
+    plan := {Recycle: [], Permanent: [], FallbackTc: []}
     paths := NormalizeAndFilterPaths(paths)
 
     for , path in paths {
@@ -253,9 +249,6 @@ BuildDeletePlan(paths) {
             plan.FallbackTc.Push(path)
         }
 
-        if RegExMatch(Trim(path, " `t`r`n" . Chr(34)), "i)^B:\\") {
-            plan.BDriveTouched := true
-        }
     }
 
     return plan
@@ -264,7 +257,7 @@ BuildDeletePlan(paths) {
 ClassifyDeleteBucket(path) {
     p := Trim(path, " `t`r`n" . Chr(34))
 
-    ; UNC/sitove cesty se maji chovat jako mazani do Kose.
+    ; V Del modu: trvale mazat jen E:\. Vse ostatni do Kose.
     if IsNetworkPath(p)
         return "recycle"
 
@@ -272,37 +265,10 @@ ClassifyDeleteBucket(path) {
         return "fallback"
 
     d := StrUpper(m[1])
-    if (d = "A" || d = "C" || d = "D" || d = "E" || d = "P" || d = "Y")
-        return "recycle"
-
-    if (d = "B" || d = "M" || d = "T" || d = "X" || d = "Z")
+    if (d = "E")
         return "permanent"
 
-    return "fallback"
-}
-
-LogBRecycleBinState() {
-    recycleRoot := "B:\zPC\$RECYCLE.BIN"
-    DebugDeleteLog("B recycle snapshot begin | root=" recycleRoot)
-
-    if !DirExist(recycleRoot) {
-        DebugDeleteLog("B recycle snapshot | root missing")
-        return
-    }
-
-    count := 0
-    totalBytes := 0
-
-    Loop Files, recycleRoot "\*", "FR" {
-        count += 1
-        if (A_LoopFileSize != "")
-            totalBytes += A_LoopFileSize
-        if (count <= 60) {
-            DebugDeleteLog("B recycle item | " A_LoopFilePath " | size=" A_LoopFileSize)
-        }
-    }
-
-    DebugDeleteLog("B recycle snapshot end | files=" count " | bytes=" totalBytes)
+    return "recycle"
 }
 
 AreAnyPathsNetworkDrive(paths) {
