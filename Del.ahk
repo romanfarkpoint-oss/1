@@ -206,6 +206,10 @@ HandleTotalCommanderDeleteButton(listFileArg) {
         }
 
         DebugDeleteLog("main OFF recycle failed => RunTotalCommanderNormalDelete")
+        if AreAllPathsOnProtectedDrives(paths) {
+            MsgBox "Mazani selhalo: na jednotkach A/C/D/P/Y se ma mazat pres Kos, ne primo.", "AHK Delete", "Iconx"
+            return
+        }
         RunTotalCommanderNormalDelete(hwnd)
         return
     }
@@ -223,6 +227,10 @@ HandleTotalCommanderDeleteButton(listFileArg) {
         }
 
         DebugDeleteLog("recycle failed => RunTotalCommanderNormalDelete")
+        if AreAllPathsOnProtectedDrives(paths) {
+            MsgBox "Mazani selhalo: na jednotkach A/C/D/P/Y se ma mazat pres Kos, ne primo.", "AHK Delete", "Iconx"
+            return
+        }
         RunTotalCommanderNormalDelete(hwnd)
         return
     }
@@ -261,6 +269,23 @@ AreAnyPathsNetworkDrive(paths) {
     }
 
     return false
+}
+
+AreAllPathsOnProtectedDrives(paths) {
+    paths := NormalizeAndFilterPaths(paths)
+    if (paths.Length = 0)
+        return false
+
+    for , one in paths {
+        p := Trim(one, " `t`r`n" . Chr(34))
+        if !RegExMatch(p, "i)^([A-Z]):\\", &m)
+            return false
+        d := StrUpper(m[1])
+        if !(d = "A" || d = "C" || d = "D" || d = "P" || d = "Y")
+            return false
+    }
+
+    return true
 }
 
 DebugDeleteLog(msg) {

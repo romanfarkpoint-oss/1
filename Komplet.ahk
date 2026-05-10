@@ -572,12 +572,32 @@ HandleTcDeleteAyRecycle(listFileArg) {
         TcDeleteLog("path=" p)
         ; Mazani resime primo nad puvodni cestou z TC.
         ; Tim se vyhneme prepinani panelu na C: pri A:/Y: mapovani.
-        try FileRecycle p
-        catch {
-            TcDeleteLog("FileRecycle failed -> TC normal delete")
-            RunTcNormalDeleteSimple(hwnd)
+        try {
+            FileRecycle p
+            continue
+        } catch {
+        }
+
+        ; Pro A:/Y: zkus fallback na lokalni mapovani.
+        resolved := ResolveAyToLocalPath(p)
+        if (resolved != "") {
+            try {
+                FileRecycle resolved
+                continue
+            } catch {
+            }
+        }
+
+        ; Na lokalnich jednotkach nechceme padat na prime/normal TC mazani.
+        if IsProtectedLocalDrivePath(p) {
+            TcDeleteLog("recycle failed on protected local drive -> abort")
+            MsgBox "Mazani selhalo: na A/C/D/E/P/Y se ma mazat pres Kos, ne primo.", "Komplet Delete", "Iconx"
             return
         }
+
+        TcDeleteLog("FileRecycle failed -> TC normal delete")
+        RunTcNormalDeleteSimple(hwnd)
+        return
     }
 
     ; Po uspesnem FileRecycle neni potreba panel nasilne prepinat/rereadovat.
@@ -632,6 +652,14 @@ ResolveAyToLocalPath(path) {
     }
 
     return ""
+}
+
+IsProtectedLocalDrivePath(path) {
+    p := Trim(path, " `t`r`n" . Chr(34))
+    if !RegExMatch(p, "i)^([A-Z]):\\", &m)
+        return false
+    d := StrUpper(m[1])
+    return (d = "A" || d = "C" || d = "D" || d = "E" || d = "P" || d = "Y")
 }
 
 GetPathsFromTcListFileSimple(listFile) {
