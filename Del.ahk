@@ -68,7 +68,8 @@ LOCAL_MAPPED_DRIVE_OVERRIDES["Y:"] := "D:\Downloads"
 ;     sitovy disk / NAS = normalni mazani Total Commanderu
 ;
 ; - hlavni trvala instance Del.ahk NEBEZI:
-;     vse = normalni mazani Total Commanderu
+;     sitovy disk / NAS = normalni mazani Total Commanderu
+;     ostatni cesty = pokus o presun do Kose, pri chybe fallback na normalni TC mazani
 ;
 ; ZADNY nahradni kos se nepouziva.
 ; ZADNY FileRecycle se nepouziva.
