@@ -35,6 +35,7 @@ CheckHomescapes() {
 ; ============================================================
 
 LOCAL_MAPPED_DRIVE_OVERRIDES := Map()
+LOCAL_MAPPED_DRIVE_OVERRIDES["A:"] := "C:\Users\R\A"
 LOCAL_MAPPED_DRIVE_OVERRIDES["Y:"] := "D:\Downloads"
 
 ; ============================================================
@@ -1257,6 +1258,13 @@ DeletePathsToRecycleBin(paths) {
     for , path in paths {
         recycleTarget := path
 
+        ; Lokální override pro SUBST/mapovane jednotky (A:, Y:) i kdyz nejsou vyhodnocene jako sit.
+        manualResolved := ResolveManualDriveOverride(path)
+        if (manualResolved != "" && manualResolved != path) {
+            recycleTarget := manualResolved
+            DebugDeleteLog("recycle uses manual override | " path " => " recycleTarget)
+        }
+
         ; U sitovych/mapovanych cest preferuj nejdriv lokalne rozresleny cil.
         ; To pomuze pro mapovani typu \\THISPC\share -> D:\share (lokalni Kos).
         if IsNetworkPath(path) {
@@ -1292,6 +1300,22 @@ DeletePathsToRecycleBin(paths) {
     }
 
     return true
+}
+
+ResolveManualDriveOverride(path) {
+    global LOCAL_MAPPED_DRIVE_OVERRIDES
+
+    p := Trim(path, " `t`r`n" . Chr(34))
+    if !RegExMatch(p, "i)^([A-Z]:)\\?(.*)$", &m)
+        return ""
+
+    driveKey := StrUpper(m[1])
+    rest := m[2]
+    if !LOCAL_MAPPED_DRIVE_OVERRIDES.Has(driveKey)
+        return ""
+
+    localRoot := LOCAL_MAPPED_DRIVE_OVERRIDES[driveKey]
+    return (rest = "") ? localRoot : PathCombine(localRoot, rest)
 }
 
 
