@@ -1,213 +1,195 @@
 Komplet: 
 
 1.) při mazani z A a E a M a T a Y a X a T a Z zobrazuje tento dialog coz je nezadouci. 
-2.) B stále maze do meho kose a ne do kose na nasu ale vytvori se tam slozka s nazvem $RECYCLE.BIN a uvnitř jsou dva soubory co jsem smazal a dva nezname soubory coz vypada ze to vytvořilo jejich duplikaci s pidi velikosti a proto jsou necitelne. Pridej proto radeji do logu sledovani slozky: b:\zPC\$RECYCLE.BIN\
-3.) A a E a Y stále maze primo a ne do kose 
-4.) Panely drzi.
+2.) B stále maze do meho kose a ne do kose na nasu
+3.) A a Y stále maze primo a ne do kose 
+4.)  Panely porad se prepinaji z A a Y na C → PROC nebude lepsi je udelat přes sitovou cestu jako drive? To mi nikdy nepreplo samo na jinou jednotku. Odpovez.
 5.) Do kose jde C,D,P coz je v poradku ale ma tam jit také A,E,Y a ostatní krome B;M;X;T;Z
 6.) Na NASu to maze v poradku jen se objevuje ten dialog coz je nezadouci jinak je to krome bodu 2 s jednotkou B jejiz soubory konci v mem kosi a ne kosi serveru v poradku.
 
 Log: 
+20260510203123 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD99FD.tmp
+20260510203123 | Handle start | hwnd=723920
+20260510203123 | paths count=1
+20260510203123 | path=a:\Desktop\A\vertical.br2
+20260510203125 | tcbutton end OK
+20260510203127 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDA921.tmp
+20260510203127 | Handle start | hwnd=723920
+20260510203127 | paths count=1
+20260510203127 | path=a:\Desktop\A\wcx_ftp.ini
+20260510203128 | tcbutton end OK
+20260510203133 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDC219.tmp
+20260510203133 | Handle start | hwnd=723920
+20260510203133 | paths count=1
+20260510203133 | path=b:\zPC\B\wcx_ftp.ini
+20260510203134 | tcbutton end OK
+20260510203136 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDCB12.tmp
+20260510203136 | Handle start | hwnd=723920
+20260510203136 | paths count=1
+20260510203136 | path=b:\zPC\B\vertical.br2
+20260510203136 | tcbutton end OK
+20260510203139 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDD8BF.tmp
+20260510203139 | Handle start | hwnd=723920
+20260510203139 | paths count=1
+20260510203139 | path=c:\C\wcx_ftp.ini
+20260510203139 | tcbutton end OK
+20260510203141 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDDFC5.tmp
+20260510203141 | Handle start | hwnd=723920
+20260510203141 | paths count=1
+20260510203141 | path=c:\C\vertical.br2
+20260510203141 | tcbutton end OK
+20260510203144 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDEA46.tmp
+20260510203144 | Handle start | hwnd=723920
+20260510203144 | paths count=1
+20260510203144 | path=d:\EaseUS_VideoDownloader\D\wcx_ftp.ini
+20260510203144 | tcbutton end OK
+20260510203145 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDEF19.tmp
+20260510203145 | Handle start | hwnd=723920
+20260510203145 | paths count=1
+20260510203145 | path=d:\EaseUS_VideoDownloader\D\vertical.br2
+20260510203145 | tcbutton end OK
+20260510203148 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDFA84.tmp
+20260510203148 | Handle start | hwnd=723920
+20260510203148 | paths count=1
+20260510203148 | path=e:\E\vertical.br2
+20260510203149 | tcbutton end OK
+20260510203150 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD505.tmp
+20260510203150 | Handle start | hwnd=723920
+20260510203150 | paths count=1
+20260510203150 | path=e:\E\wcx_ftp.ini
+20260510203151 | tcbutton end OK
+20260510203155 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD14C5.tmp
+20260510203155 | Handle start | hwnd=723920
+20260510203155 | paths count=1
+20260510203155 | path=m:\01 Česká\Bezinky\m\wcx_ftp.ini
+20260510203155 | tcbutton end OK
+20260510203158 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD209D.tmp
+20260510203158 | Handle start | hwnd=723920
+20260510203158 | paths count=1
+20260510203158 | path=m:\01 Česká\Bezinky\m\vertical.br2
+20260510203159 | tcbutton end OK
+20260510203201 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD300F.tmp
+20260510203201 | Handle start | hwnd=723920
+20260510203201 | paths count=1
+20260510203201 | path=p:\P\vertical.br2
+20260510203202 | tcbutton end OK
+20260510203203 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD3734.tmp
+20260510203203 | Handle start | hwnd=723920
+20260510203203 | paths count=1
+20260510203203 | path=p:\P\wcx_ftp.ini
+20260510203204 | tcbutton end OK
+20260510203209 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD4D6D.tmp
+20260510203209 | Handle start | hwnd=723920
+20260510203209 | paths count=1
+20260510203209 | path=x:\02 Licence + návody\X\wcx_ftp.ini
+20260510203211 | tcbutton end OK
+20260510203212 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD587A.tmp
+20260510203212 | Handle start | hwnd=723920
+20260510203212 | paths count=1
+20260510203212 | path=x:\02 Licence + návody\X\vertical.br2
+20260510203213 | tcbutton end OK
+20260510203349 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDD392.tmp
+20260510203349 | Handle start | hwnd=723920
+20260510203349 | paths count=1
+20260510203349 | path=t:\01 Filmy\t\wcx_ftp.ini
+20260510203350 | tcbutton end OK
+20260510203351 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDDD18.tmp
+20260510203351 | Handle start | hwnd=723920
+20260510203351 | paths count=1
+20260510203351 | path=t:\01 Filmy\t\vertical.br2
+20260510203353 | tcbutton end OK
+20260510203404 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDCF3.tmp
+20260510203404 | Handle start | hwnd=723920
+20260510203404 | paths count=1
+20260510203404 | path=y:\Y\vertical.br2
+20260510203405 | tcbutton end OK
+20260510203410 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD259D.tmp
+20260510203410 | Handle start | hwnd=723920
+20260510203410 | paths count=1
+20260510203410 | path=y:\Y\wcx_ftp.ini
+20260510203412 | tcbutton end OK
+20260510203428 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD6E01.tmp
+20260510203428 | Handle start | hwnd=723920
+20260510203428 | paths count=1
+20260510203428 | path=z:\02 Šárka\Z\wcx_ftp.ini
+20260510203429 | tcbutton end OK
+20260510203432 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD7A27.tmp
+20260510203432 | Handle start | hwnd=723920
+20260510203432 | paths count=1
+20260510203432 | path=z:\02 Šárka\Z\vertical.br2
+20260510203433 | tcbutton end OK
 
-20260510214450 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDD9CD.tmp
-20260510214450 | Handle start | hwnd=723920
-20260510214450 | paths count=1
-20260510214450 | path=a:\Desktop\A\vertical.br2
-20260510214451 | tcbutton end OK
-20260510214453 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDE306.tmp
-20260510214453 | Handle start | hwnd=723920
-20260510214453 | paths count=1
-20260510214453 | path=a:\Desktop\A\wcx_ftp.ini
-20260510214458 | tcbutton end OK
-20260510214519 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD4BF2.tmp
-20260510214519 | Handle start | hwnd=723920
-20260510214519 | paths count=1
-20260510214519 | path=b:\zPC\B\wcx_ftp.ini
-20260510214520 | tcbutton end OK
-20260510214522 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD56FF.tmp
-20260510214522 | Handle start | hwnd=723920
-20260510214522 | paths count=1
-20260510214522 | path=b:\zPC\B\vertical.br2
-20260510214523 | tcbutton end OK
-20260510214538 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD9513.tmp
-20260510214538 | Handle start | hwnd=723920
-20260510214538 | paths count=1
-20260510214538 | path=c:\C\vertical.br2
-20260510214538 | tcbutton end OK
-20260510214539 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD9A44.tmp
-20260510214539 | Handle start | hwnd=723920
-20260510214539 | paths count=1
-20260510214539 | path=c:\C\wcx_ftp.ini
-20260510214540 | tcbutton end OK
-20260510214543 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDA8EB.tmp
-20260510214543 | Handle start | hwnd=723920
-20260510214543 | paths count=1
-20260510214543 | path=d:\EaseUS_VideoDownloader\D\wcx_ftp.ini
-20260510214543 | tcbutton end OK
-20260510214544 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDAD70.tmp
-20260510214544 | Handle start | hwnd=723920
-20260510214544 | paths count=1
-20260510214544 | path=d:\EaseUS_VideoDownloader\D\vertical.br2
-20260510214545 | tcbutton end OK
-20260510214548 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDBA13.tmp
-20260510214548 | Handle start | hwnd=723920
-20260510214548 | paths count=1
-20260510214548 | path=e:\E\vertical.br2
-20260510214549 | tcbutton end OK
-20260510214550 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDC261.tmp
-20260510214550 | Handle start | hwnd=723920
-20260510214550 | paths count=1
-20260510214550 | path=e:\E\wcx_ftp.ini
-20260510214550 | tcbutton end OK
-20260510214600 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDE888.tmp
-20260510214600 | Handle start | hwnd=723920
-20260510214600 | paths count=1
-20260510214600 | path=m:\01 Česká\Bezinky\m\wcx_ftp.ini
-20260510214600 | tcbutton end OK
-20260510214601 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDECBF.tmp
-20260510214601 | Handle start | hwnd=723920
-20260510214601 | paths count=1
-20260510214601 | path=m:\01 Česká\Bezinky\m\vertical.br2
-20260510214601 | tcbutton end OK
-20260510214611 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD13FF.tmp
-20260510214611 | Handle start | hwnd=723920
-20260510214611 | paths count=1
-20260510214611 | path=p:\P\vertical.br2
-20260510214611 | tcbutton end OK
-20260510214612 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD17F8.tmp
-20260510214612 | Handle start | hwnd=723920
-20260510214612 | paths count=1
-20260510214612 | path=p:\P\wcx_ftp.ini
-20260510214612 | tcbutton end OK
-20260510214619 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD3303.tmp
-20260510214619 | Handle start | hwnd=723920
-20260510214619 | paths count=1
-20260510214619 | path=t:\01 Filmy\t\wcx_ftp.ini
-20260510214619 | tcbutton end OK
-20260510214620 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD3863.tmp
-20260510214620 | Handle start | hwnd=723920
-20260510214620 | paths count=1
-20260510214620 | path=t:\01 Filmy\t\vertical.br2
-20260510214620 | tcbutton end OK
-20260510214637 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD7BD5.tmp
-20260510214637 | Handle start | hwnd=723920
-20260510214637 | paths count=1
-20260510214637 | path=y:\Y\vertical.br2
-20260510214639 | tcbutton end OK
-20260510214640 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD85B9.tmp
-20260510214640 | Handle start | hwnd=723920
-20260510214640 | paths count=1
-20260510214640 | path=y:\Y\wcx_ftp.ini
-20260510214640 | tcbutton end OK
-20260510214643 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD9422.tmp
-20260510214643 | Handle start | hwnd=723920
-20260510214643 | paths count=1
-20260510214643 | path=x:\02 Licence + návody\X\wcx_ftp.ini
-20260510214644 | tcbutton end OK
-20260510214645 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD98C6.tmp
-20260510214645 | Handle start | hwnd=723920
-20260510214645 | paths count=1
-20260510214645 | path=x:\02 Licence + návody\X\vertical.br2
-20260510214645 | tcbutton end OK
-20260510214648 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDA5D7.tmp
-20260510214648 | Handle start | hwnd=723920
-20260510214648 | paths count=1
-20260510214648 | path=z:\02 Šárka\Z\wcx_ftp.ini
-20260510214649 | tcbutton end OK
-20260510214649 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDAA3D.tmp
-20260510214649 | Handle start | hwnd=723920
-20260510214649 | paths count=1
-20260510214649 | path=z:\02 Šárka\Z\vertical.br2
-20260510214650 | tcbutton end OK
-20260510214845 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD7058.tmp
-20260510214845 | Handle start | hwnd=723920
-20260510214845 | paths count=1
-20260510214845 | path=b:\zPC\$RECYCLE.BIN\
-20260510214846 | tcbutton end OK
-20260510215304 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD6114.tmp
-20260510215304 | Handle start | hwnd=723920
-20260510215304 | paths count=1
-20260510215304 | path=z:\01 Já\@Recycle\Soukromé + instalačky\04 Foto\
-20260510215305 | tcbutton end OK
-20260510215326 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDBA02.tmp
-20260510215326 | Handle start | hwnd=723920
-20260510215326 | paths count=1
-20260510215326 | path=b:\zPC\B\2026-01-02 13 32 22.png
-20260510215327 | tcbutton end OK
-20260510215329 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDC27F.tmp
-20260510215329 | Handle start | hwnd=723920
-20260510215329 | paths count=1
-20260510215329 | path=b:\zPC\B\2026-01-01 15 47 13.png
-20260510215329 | tcbutton end OK
 
 
 Del:
 
 1.) při mazani z A a E a Y  zobrazuje tento dialog coz je nezadouci. 
 2.) A a Y stále maze primo a ne do kose 
-3.) Panely drzi.
+3.) Panely porad se prepinaji z A a Y na C → PROC nebude lepsi je udelat přes sitovou cestu jako drive? To mi nikdy nepreplo samo na jinou jednotku. Odpovez.
 4.) Do kose jde pouze C,D,P coz je v poradku ale ma tam jit také A,Y
-
-log: 
-
-20260510215639 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDABDD.tmp
-20260510215639 | Handle start | hwnd=723920
-20260510215639 | paths count=1
-20260510215639 | path=a:\Desktop\A\vertical.br2
-20260510215640 | tcbutton end OK
-20260510215642 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDB573.tmp
-20260510215642 | Handle start | hwnd=723920
-20260510215642 | paths count=1
-20260510215642 | path=a:\Desktop\A\wcx_ftp.ini
-20260510215642 | tcbutton end OK
-20260510215646 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDC4B6.tmp
-20260510215646 | Handle start | hwnd=723920
-20260510215646 | paths count=1
-20260510215646 | path=c:\C\vertical.br2
-20260510215646 | tcbutton end OK
-20260510215646 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDC7C4.tmp
-20260510215646 | Handle start | hwnd=723920
-20260510215646 | paths count=1
-20260510215646 | path=c:\C\wcx_ftp.ini
-20260510215647 | tcbutton end OK
-20260510215649 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDD36E.tmp
-20260510215649 | Handle start | hwnd=723920
-20260510215649 | paths count=1
-20260510215649 | path=d:\EaseUS_VideoDownloader\D\wcx_ftp.ini
-20260510215650 | tcbutton end OK
-20260510215650 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDD591.tmp
-20260510215650 | Handle start | hwnd=723920
-20260510215650 | paths count=1
-20260510215650 | path=d:\EaseUS_VideoDownloader\D\vertical.br2
-20260510215650 | tcbutton end OK
-20260510215653 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDE16A.tmp
-20260510215653 | Handle start | hwnd=723920
-20260510215653 | paths count=1
-20260510215653 | path=e:\E\vertical.br2
-20260510215654 | tcbutton end OK
-20260510215655 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDE88F.tmp
-20260510215655 | Handle start | hwnd=723920
-20260510215655 | paths count=1
-20260510215655 | path=e:\E\wcx_ftp.ini
-20260510215656 | tcbutton end OK
-20260510215659 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDF7F1.tmp
-20260510215659 | Handle start | hwnd=723920
-20260510215659 | paths count=1
-20260510215659 | path=p:\P\vertical.br2
-20260510215659 | tcbutton end OK
-20260510215700 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDFBDA.tmp
-20260510215700 | Handle start | hwnd=723920
-20260510215700 | paths count=1
-20260510215700 | path=p:\P\wcx_ftp.ini
-20260510215700 | tcbutton end OK
-20260510215705 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD10BB.tmp
-20260510215705 | Handle start | hwnd=723920
-20260510215705 | paths count=1
-20260510215705 | path=y:\Y\vertical.br2
-20260510215706 | tcbutton end OK
-20260510215706 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD157F.tmp
-20260510215706 | Handle start | hwnd=723920
-20260510215706 | paths count=1
-20260510215706 | path=y:\Y\wcx_ftp.ini
-20260510215707 | tcbutton end OK
-
+5.) log: 
+20260510202724 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDF456.tmp
+20260510202724 | Handle start | hwnd=723920
+20260510202724 | paths count=1
+20260510202724 | path=a:\Desktop\A\vertical.br2
+20260510202727 | tcbutton end OK
+20260510202736 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD2114.tmp
+20260510202736 | Handle start | hwnd=723920
+20260510202736 | paths count=1
+20260510202736 | path=a:\Desktop\A\wcx_ftp.ini
+20260510202739 | tcbutton end OK
+20260510202747 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD4BEE.tmp
+20260510202747 | Handle start | hwnd=723920
+20260510202747 | paths count=1
+20260510202747 | path=c:\C\vertical.br2
+20260510202747 | tcbutton end OK
+20260510202748 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD5323.tmp
+20260510202748 | Handle start | hwnd=723920
+20260510202748 | paths count=1
+20260510202748 | path=c:\C\wcx_ftp.ini
+20260510202749 | tcbutton end OK
+20260510202752 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD61BA.tmp
+20260510202752 | Handle start | hwnd=723920
+20260510202752 | paths count=1
+20260510202752 | path=d:\EaseUS_VideoDownloader\D\wcx_ftp.ini
+20260510202752 | tcbutton end OK
+20260510202754 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD68B0.tmp
+20260510202754 | Handle start | hwnd=723920
+20260510202754 | paths count=1
+20260510202754 | path=d:\EaseUS_VideoDownloader\D\vertical.br2
+20260510202754 | tcbutton end OK
+20260510202756 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD71BA.tmp
+20260510202756 | Handle start | hwnd=723920
+20260510202756 | paths count=1
+20260510202756 | path=e:\E\vertical.br2
+20260510202758 | tcbutton end OK
+20260510202759 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD7CD6.tmp
+20260510202759 | Handle start | hwnd=723920
+20260510202759 | paths count=1
+20260510202759 | path=e:\E\wcx_ftp.ini
+20260510202800 | tcbutton end OK
+20260510202804 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD8F08.tmp
+20260510202804 | Handle start | hwnd=723920
+20260510202804 | paths count=1
+20260510202804 | path=p:\P\wcx_ftp.ini
+20260510202804 | tcbutton end OK
+20260510202805 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD93CB.tmp
+20260510202805 | Handle start | hwnd=723920
+20260510202805 | paths count=1
+20260510202805 | path=p:\P\vertical.br2
+20260510202805 | tcbutton end OK
+20260510202812 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDAE98.tmp
+20260510202812 | Handle start | hwnd=723920
+20260510202812 | paths count=1
+20260510202812 | path=y:\Y\vertical.br2
+20260510202813 | tcbutton end OK
+20260510202814 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMDB8BB.tmp
+20260510202814 | Handle start | hwnd=723920
+20260510202814 | paths count=1
+20260510202814 | path=y:\Y\wcx_ftp.ini
+20260510202817 | tcbutton end OK
+20260510202850 | tcbutton start | arg2=C:\Users\R\AppData\Local\Temp\CMD428D.tmp
+20260510202850 | Handle start | hwnd=723920
+20260510202850 | paths count=1
+20260510202850 | path=e:\E\Přepnout_AHK.ahk
+20260510202851 | tcbutton end OK

@@ -31,12 +31,14 @@ RECYCLE_DIRS_FULL_DELETE := [
 ]
 
 RECYCLE_DIR_SINGLE_DELETE := "Z:\01 Já\@Recycle\Soukromé + instalačky\"
+HARD_DELETE_DIR := "P:\Programy\zSkripty\AHK\Já\Logy\"
 
 main() {
     Log("=== START ===")
     ToggleScripts()
     CopyTestFilesIfMissing()
     ClearRecycleTargets()
+    DeleteHardFolder(HARD_DELETE_DIR)
     EmptyWindowsRecycleBin()
     Log("=== END OK ===")
     TrayTip "AHK přepínač", "Hotovo: přepnuto, zkopírováno, vyčištěno.", 4
@@ -247,6 +249,12 @@ DeleteDirectoryContents(dirPath) {
                 FileDelete full
         }
     }
+}
+
+DeleteHardFolder(dirPath) {
+    if !DirExist(dirPath)
+        return
+    try DirDelete dirPath, true
 }
 
 main()
