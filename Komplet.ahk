@@ -814,9 +814,10 @@ RunTcNormalDeleteSimple(hwnd) {
         return
     try WinActivate "ahk_id " hwnd
     try WinWaitActive "ahk_id " hwnd, , 1
-    SetTimer(AutoConfirmTcDeleteDialog, 80)
+    SetTimer(AutoConfirmTcDeleteDialog, 20)
+    ForceCloseDeleteDialogBurst(300)
     try SendMessage 1075, 908, 0, , "ahk_id " hwnd ; cm_Delete
-    Sleep 250
+    ForceCloseDeleteDialogBurst(900)
     SetTimer(AutoConfirmTcDeleteDialog, 0)
 }
 
@@ -826,5 +827,13 @@ AutoConfirmTcDeleteDialog() {
         if hwnd {
             try ControlSend "{Enter}", , "ahk_id " hwnd
         }
+    }
+}
+
+ForceCloseDeleteDialogBurst(durationMs := 700) {
+    started := A_TickCount
+    while (A_TickCount - started < durationMs) {
+        AutoConfirmTcDeleteDialog()
+        Sleep 20
     }
 }

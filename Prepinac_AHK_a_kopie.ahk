@@ -27,7 +27,8 @@ TARGET_DIRS := [
 
 RECYCLE_DIRS_FULL_DELETE := [
     "Z:\02 Šárka\@Recycle\\",
-    "Z:\08 TV\@Recycle\\"
+    "Z:\08 TV\@Recycle\\",
+    "B:\zPC\$RECYCLE.BIN\\"
 ]
 
 RECYCLE_DIR_SINGLE_DELETE := "Z:\01 Já\@Recycle\Soukromé + instalačky\"
@@ -59,6 +60,11 @@ RefreshTotalCommanderPanels() {
             WinWaitActive "ahk_id " hwnd, , 1
             SendMessage 1075, 540, 0, , "ahk_id " hwnd
             SendMessage 1075, 541, 0, , "ahk_id " hwnd
+            ; Pro jistotu vynut refresh obou panelu prehozenim aktivniho panelu.
+            SendMessage 1075, 400, 0, , "ahk_id " hwnd ; cm_SrcByFocus
+            SendMessage 1075, 540, 0, , "ahk_id " hwnd
+            SendMessage 1075, 400, 0, , "ahk_id " hwnd ; zpet
+            SendMessage 1075, 540, 0, , "ahk_id " hwnd
         }
     }
 }

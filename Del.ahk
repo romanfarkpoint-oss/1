@@ -86,7 +86,7 @@ SCRIPT_IS_MAIN_INSTANCE := false
 MAIN_STATE_MAX_AGE_SECONDS := 4
 DEBUG_DELETE_LOG := true ; prepinac logovani
 DEBUG_DELETE_LOG_FILE := "P:\Programy\zSkripty\AHK\Já\Logy\del_tc_delete.log"
-PERF_LOG_ENABLED := true
+PERF_LOG_ENABLED := false
 PERF_LOG_FILE := "P:\Programy\zSkripty\AHK\Já\Logy\zpozdeni.log"
 
 ; ============================================================
