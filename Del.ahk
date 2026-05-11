@@ -86,8 +86,12 @@ SCRIPT_IS_MAIN_INSTANCE := false
 MAIN_STATE_MAX_AGE_SECONDS := 4
 DEBUG_DELETE_LOG := false ; mazaci log vypnut (mazani uz je stabilni)
 DEBUG_DELETE_LOG_FILE := "P:\Programy\zSkripty\AHK\Já\Logy\del_tc_delete.log"
-PERF_LOG_ENABLED := false
+PERF_LOG_ENABLED := true
 PERF_LOG_FILE := "P:\Programy\zSkripty\AHK\Já\Logy\zpozdeni.log"
+ENABLE_TIMER_CHECK_ACTIVE_WINDOW := true
+ENABLE_TIMER_VLC_TITLES := true
+ENABLE_TIMER_VLC_OSD := true
+ENABLE_TIMER_PERF_HEARTBEAT := true
 
 ; ============================================================
 ; VLC HTTP ROZHRANI
@@ -400,12 +404,16 @@ OnClipboardChange(ClipboardChanged)
 
 TrayTip "AHK Delete + odkazy", "Zapnuto. TC Delete/tlacitko: lokalni disky trvale, sit/NAS normalne pres TC. Schránka URL -> anonymní Firefox zapnuta.", 4
 
-SetTimer(CheckActiveWindow, 500)
+if ENABLE_TIMER_CHECK_ACTIVE_WINDOW
+    SetTimer(CheckActiveWindow, 500)
 if ENABLE_IRFAN_TITLE_TRACKING
     SetTimer(UpdateIrfanViewTitles, 200)
-SetTimer(UpdateVlcTitles, 250)
-SetTimer(UpdateVlcFullscreenOsd, 500)
-SetTimer(PerfHeartbeat, 1000)
+if ENABLE_TIMER_VLC_TITLES
+    SetTimer(UpdateVlcTitles, 250)
+if ENABLE_TIMER_VLC_OSD
+    SetTimer(UpdateVlcFullscreenOsd, 500)
+if ENABLE_TIMER_PERF_HEARTBEAT
+    SetTimer(PerfHeartbeat, 1000)
 
 return
 

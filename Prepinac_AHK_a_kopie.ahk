@@ -60,11 +60,6 @@ RefreshTotalCommanderPanels() {
             WinWaitActive "ahk_id " hwnd, , 1
             SendMessage 1075, 540, 0, , "ahk_id " hwnd
             SendMessage 1075, 541, 0, , "ahk_id " hwnd
-            ; Pro jistotu vynut refresh obou panelu prehozenim aktivniho panelu.
-            SendMessage 1075, 400, 0, , "ahk_id " hwnd ; cm_SrcByFocus
-            SendMessage 1075, 540, 0, , "ahk_id " hwnd
-            SendMessage 1075, 400, 0, , "ahk_id " hwnd ; zpet
-            SendMessage 1075, 540, 0, , "ahk_id " hwnd
         }
     }
 }
