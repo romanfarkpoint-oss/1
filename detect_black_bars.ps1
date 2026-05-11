@@ -2,6 +2,12 @@
 
 $ErrorActionPreference = 'Stop'
 
+# V PowerShell 7 nativni stderr muze vyvolat exception pri ErrorActionPreference=Stop.
+# FFmpeg zapisuje bezne informacni vystup na stderr, proto to vypneme.
+if ($PSVersionTable.PSVersion.Major -ge 7) {
+    $PSNativeCommandUseErrorActionPreference = $false
+}
+
 $pathsToScan = @(
     '\\QNAS1911\08 TV\01 Filmy',
     '\\QNAS1911\08 TV\02 Serialy',
@@ -149,6 +155,7 @@ function Get-CropdetectForTime {
 
     $args = @(
         '-hide_banner',
+        '-loglevel', 'info',
         '-ss', $timeSec,
         '-i', $file,
         '-t', '3',
