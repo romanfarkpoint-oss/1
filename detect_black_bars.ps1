@@ -15,6 +15,101 @@ $ffprobe = 'p:\Programy\zSkripty\FFmpeg\bin\ffprobe.exe'
 
 $videoExt = @('.mp4','.mkv','.avi','.mov','.wmv','.m4v','.ts','.m2ts','.mpg','.mpeg','.webm')
 
+
+function Show-DetailedProcedure {
+    Write-Host "=" * 60 -ForegroundColor DarkGray
+    Write-Host "PODROBNY POSTUP" -ForegroundColor Cyan
+    Write-Host "1) Skript projde NAS slozky s filmy/serialy/pohadkami." -ForegroundColor Gray
+    Write-Host "2) U kazdeho videa zjisti delku (ffprobe)." -ForegroundColor Gray
+    Write-Host "3) Z ruznych casti videa vezme vice vzorku casu." -ForegroundColor Gray
+    Write-Host "4) V kazdem vzorku analyzuje vice snimku (cropdetect)." -ForegroundColor Gray
+    Write-Host "5) Overi stabilitu cropu, aby odfiltroval tmave sceny." -ForegroundColor Gray
+    Write-Host "6) Podezrele soubory zapise do vystupu vcetne FFmpeg crop prikazu." -ForegroundColor Gray
+    Write-Host "7) Po dokonceni odesle zvuk do aktivni uzivatelske relace." -ForegroundColor Gray
+    Write-Host "=" * 60 -ForegroundColor DarkGray
+}
+
+function Get-ActiveUserSessionId {
+    try {
+        $lines = @(quser 2>$null)
+    } catch {
+        return $null
+    }
+
+    if ($lines.Count -lt 2) {
+        return $null
+    }
+
+    foreach ($line in $lines | Select-Object -Skip 1) {
+        $clean = $line.Trim()
+        if ($clean -match '\s+(\d+)\s+Active\s+') {
+            return [int]$matches[1]
+        }
+    }
+
+    return $null
+}
+
+function Play-FinishSoundViaPsExec {
+    param(
+        [string]$PsExecPath = "P:\Programy\zSkripty\Ostatni\PsExec.exe",
+        [string]$WavPath    = "P:\Programy\zSkripty\Ostatni\Success.wav"
+    )
+
+    Write-Host "------------------------------------------------------------" -ForegroundColor DarkGray
+    Write-Host "Zvukove upozorneni po dokonceni" -ForegroundColor Cyan
+
+    if (-not (Test-Path -LiteralPath $PsExecPath -PathType Leaf)) {
+        Write-Host "PsExec nenalezen: $PsExecPath" -ForegroundColor Yellow
+        return
+    }
+
+    if (-not (Test-Path -LiteralPath $WavPath -PathType Leaf)) {
+        Write-Host "WAV soubor nenalezen: $WavPath" -ForegroundColor Yellow
+        return
+    }
+
+    $sessionId = Get-ActiveUserSessionId
+
+    if ($null -eq $sessionId) {
+        Write-Host "Nepodarilo se zjistit aktivni uzivatelskou relaci." -ForegroundColor Yellow
+        return
+    }
+
+    Write-Host "Aktivni uzivatelska relace: $sessionId" -ForegroundColor Gray
+    Write-Host "Prehravam zvuk pres PsExec..." -ForegroundColor Gray
+
+    $innerCommand = @"
+try {
+    `$player = New-Object System.Media.SoundPlayer
+    `$player.SoundLocation = '$($WavPath.Replace("'", "''"))'
+    `$player.Load()
+    `$player.PlaySync()
+} catch {
+}
+"@
+
+    $bytes = [System.Text.Encoding]::Unicode.GetBytes($innerCommand)
+    $encodedCommand = [Convert]::ToBase64String($bytes)
+
+    try {
+        & $PsExecPath `
+            -accepteula `
+            -i $sessionId `
+            -d `
+            powershell.exe `
+            -NoProfile `
+            -ExecutionPolicy Bypass `
+            -WindowStyle Hidden `
+            -EncodedCommand $encodedCommand | Out-Null
+
+        Write-Host "Zvuk byl odeslan do aktivni relace." -ForegroundColor Green
+    } catch {
+        Write-Host "Nepodarilo se prehrat zvuk pres PsExec:" -ForegroundColor Red
+        Write-Host $_.Exception.Message -ForegroundColor Red
+    }
+}
+
 function Get-VideoDurationSec {
     param([string]$file)
     $dur = & $ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 -- "$file" 2>$null
@@ -135,6 +230,8 @@ function Analyze-File {
     }
 }
 
+Show-DetailedProcedure
+
 if (-not (Test-Path -LiteralPath $ffmpeg)) { throw "Nenalezen ffmpeg: $ffmpeg" }
 if (-not (Test-Path -LiteralPath $ffprobe)) { throw "Nenalezen ffprobe: $ffprobe" }
 
@@ -168,6 +265,7 @@ if ($results.Count -eq 0) {
     $content = $header + @('Nenalezeny žádné jednoznačně stabilní černé okraje.')
     $content | Set-Content -LiteralPath $outFile -Encoding UTF8
     Write-Host "Hotovo. Výstup: $outFile"
+    Play-FinishSoundViaPsExec
     exit 0
 }
 
@@ -183,3 +281,4 @@ $body = foreach ($r in $results | Sort-Object File) {
 
 ($header + $body) | Set-Content -LiteralPath $outFile -Encoding UTF8
 Write-Host "Hotovo. Nalezeno podezřelých souborů: $($results.Count). Výstup: $outFile"
+Play-FinishSoundViaPsExec
