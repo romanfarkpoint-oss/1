@@ -11,7 +11,11 @@ SetKeyDelay 30, 30
 ; HOMESCAPES KONTROLA HLASITOSTI
 ; ============================================================
 
-SetTimer(CheckHomescapes, 15000)
+TEST_DISABLE_HOMESCAPES_TIMER := false
+TEST_DISABLE_IRFAN_HOOKS := false
+
+if !TEST_DISABLE_HOMESCAPES_TIMER
+    SetTimer(CheckHomescapes, 15000)
 
 CheckHomescapes() {
     HomescapesPID := ProcessExist("Homescapes.exe")
@@ -88,10 +92,6 @@ DEBUG_DELETE_LOG := false ; mazaci log vypnut (mazani uz je stabilni)
 DEBUG_DELETE_LOG_FILE := "P:\Programy\zSkripty\AHK\Já\Logy\del_tc_delete.log"
 PERF_LOG_ENABLED := true
 PERF_LOG_FILE := "P:\Programy\zSkripty\AHK\Já\Logy\zpozdeni.log"
-ENABLE_TIMER_CHECK_ACTIVE_WINDOW := true
-ENABLE_TIMER_VLC_TITLES := true
-ENABLE_TIMER_VLC_OSD := true
-ENABLE_TIMER_PERF_HEARTBEAT := true
 
 ; ============================================================
 ; VLC HTTP ROZHRANI
@@ -404,16 +404,13 @@ OnClipboardChange(ClipboardChanged)
 
 TrayTip "AHK Delete + odkazy", "Zapnuto. TC Delete/tlacitko: lokalni disky trvale, sit/NAS normalne pres TC. Schránka URL -> anonymní Firefox zapnuta.", 4
 
-if ENABLE_TIMER_CHECK_ACTIVE_WINDOW
-    SetTimer(CheckActiveWindow, 500)
-if ENABLE_IRFAN_TITLE_TRACKING
+SetTimer(CheckActiveWindow, 500)
+if ENABLE_IRFAN_TITLE_TRACKING && !TEST_DISABLE_IRFAN_HOOKS
     SetTimer(UpdateIrfanViewTitles, 200)
-if ENABLE_TIMER_VLC_TITLES
-    SetTimer(UpdateVlcTitles, 250)
-if ENABLE_TIMER_VLC_OSD
-    SetTimer(UpdateVlcFullscreenOsd, 500)
-if ENABLE_TIMER_PERF_HEARTBEAT
-    SetTimer(PerfHeartbeat, 1000)
+SetTimer(UpdateVlcTitles, 250)
+SetTimer(UpdateVlcFullscreenOsd, 500)
+SetTimer(PerfHeartbeat, 1000)
+PerfLog("diag flags | disable_homescapes=" TEST_DISABLE_HOMESCAPES_TIMER " | disable_irfan_hooks=" TEST_DISABLE_IRFAN_HOOKS)
 
 return
 
@@ -431,7 +428,7 @@ return
 ; IRFANVIEW - RYCHLA AKTUALIZACE TITULKU PO PREPNUTI OBRAZKU
 ; ============================================================
 
-#HotIf ENABLE_IRFAN_WHEEL_HOOKS && (WinActive("ahk_exe i_view64.exe") || WinActive("ahk_exe i_view32.exe"))
+#HotIf ENABLE_IRFAN_WHEEL_HOOKS && !TEST_DISABLE_IRFAN_HOOKS && (WinActive("ahk_exe i_view64.exe") || WinActive("ahk_exe i_view32.exe"))
 
 ~WheelDown::RequestIrfanTitleRefresh()
 ~WheelUp::RequestIrfanTitleRefresh()

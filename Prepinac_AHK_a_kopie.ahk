@@ -42,7 +42,6 @@ main() {
     DeleteHardFolder(HARD_DELETE_DIR)
     EmptyWindowsRecycleBin()
     RefreshTotalCommanderPanels()
-    ClearTotalCommanderSelection()
     Log("=== END OK ===")
     TrayTip "AHK přepínač", "Hotovo: přepnuto, zkopírováno, vyčištěno.", 4
     Sleep 1200
@@ -50,28 +49,15 @@ main() {
 }
 
 RefreshTotalCommanderPanels() {
-    ; Obnov oba panely v Total Commanderu po dokončení akcí.
+    ; Obnova podle funkční PS varianty:
+    ; 1075/540 (cm_RereadSource) bez přepínání fokusu a bez command 400.
     ; WM_USER+51 = 1075
-    ; cm_RereadSource = 540, cm_RereadTarget = 541
     tcList := WinGetList("ahk_class TTOTAL_CMD")
     for , hwnd in tcList {
         try {
             WinActivate "ahk_id " hwnd
             WinWaitActive "ahk_id " hwnd, , 1
             SendMessage 1075, 540, 0, , "ahk_id " hwnd
-            SendMessage 1075, 541, 0, , "ahk_id " hwnd
-        }
-    }
-}
-
-ClearTotalCommanderSelection() {
-    ; Zrus oznaceni po dokonceni, aby nezustal vybrany spusteny skript.
-    tcList := WinGetList("ahk_class TTOTAL_CMD")
-    for , hwnd in tcList {
-        try {
-            ; cm_ClearAll = odznaceni vseho
-            SendMessage 1075, 554, 0, , "ahk_id " hwnd
-            ControlSend "{Esc}", , "ahk_id " hwnd
         }
     }
 }

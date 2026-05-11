@@ -576,7 +576,7 @@ HandleTcDeleteAyRecycle(listFileArg) {
     }
 
     plan := BuildKompletDeletePlan(paths)
-    TcDeleteLog("delete plan | recycle=" plan.Recycle.Length " | tc=" plan.Tc.Length)
+    TcDeleteLog("delete plan | recycle=" plan.Recycle.Length " | e_recycle=" plan.ERecycle.Length " | b_tc=" plan.BTc.Length " | tc=" plan.Tc.Length)
 
     if (plan.Recycle.Length > 0) {
         if DeletePathsToRecycleBinSimple(plan.Recycle) {
@@ -585,9 +585,23 @@ HandleTcDeleteAyRecycle(listFileArg) {
             TcDeleteLog("recycle delete FAILED")
         }
     }
+    if (plan.ERecycle.Length > 0) {
+        if DeletePathsToRecycleBinSimple(plan.ERecycle) {
+            TcDeleteLog("E recycle delete OK")
+        } else {
+            TcDeleteLog("E recycle delete FAILED")
+        }
+    }
 
     ; V Komplet modu se nic nema mazat trvale.
     ; NAS/B/M/T/X/Z + fallback (a cokoliv mimo recycle bucket) nechame na TC.
+    if (plan.BTc.Length > 0) {
+        TcDeleteLog("B branch active | forcing TC path")
+        LogBRecycleBinDeepSnapshot("before_b_tc_delete")
+        RunTcNormalDeleteSimple(hwnd)
+        LogBRecycleBinDeepSnapshot("after_b_tc_delete")
+    }
+
     if (plan.Tc.Length > 0) {
         if plan.BDriveTouched {
             LogBRecycleBinDeepSnapshot("before_tc_delete")
@@ -602,7 +616,7 @@ HandleTcDeleteAyRecycle(listFileArg) {
         TcDeleteLog("audit b-drive touched | id=" auditId)
         LogBRecycleBinStateKomplet()
     }
-    TcDeleteLog("audit end | id=" auditId " | recycle=" plan.Recycle.Length " | tc=" plan.Tc.Length)
+    TcDeleteLog("audit end | id=" auditId " | recycle=" plan.Recycle.Length " | e_recycle=" plan.ERecycle.Length " | b_tc=" plan.BTc.Length " | tc=" plan.Tc.Length)
 }
 
 LogBRecycleBinDeepSnapshot(stage := "") {
@@ -632,7 +646,7 @@ LogBRecycleBinDeepSnapshot(stage := "") {
 }
 
 BuildKompletDeletePlan(paths) {
-    plan := {Recycle: [], Tc: [], BDriveTouched: false}
+    plan := {Recycle: [], ERecycle: [], BTc: [], Tc: [], BDriveTouched: false}
     for , raw in paths {
         p := Trim(raw, " `t`r`n" . Chr(34))
         if (p = "")
@@ -640,6 +654,10 @@ BuildKompletDeletePlan(paths) {
         bucket := ClassifyKompletDeleteBucket(p)
         if (bucket = "recycle")
             plan.Recycle.Push(p)
+        else if (bucket = "e_recycle")
+            plan.ERecycle.Push(p)
+        else if (bucket = "b_tc")
+            plan.BTc.Push(p)
         else
             plan.Tc.Push(p)
         if RegExMatch(p, "i)^B:\\")
@@ -653,11 +671,15 @@ ClassifyKompletDeleteBucket(path) {
         return "recycle"
 
     d := StrUpper(m[1])
-    if (d = "B" || d = "M" || d = "T" || d = "X" || d = "Z")
+    if (d = "B")
+        return "b_tc"
+    if (d = "M" || d = "T" || d = "X" || d = "Z")
         return "tc"
     if (d = "A" || d = "Y")
         return "recycle"
-    if (d = "C" || d = "D" || d = "P" || d = "E")
+    if (d = "E")
+        return "e_recycle"
+    if (d = "C" || d = "D" || d = "P")
         return "recycle"
 
     ; Ostatni sitove/UNC a nove jednotky (napr. L:) standardne do Windows Kose.
@@ -814,10 +836,10 @@ RunTcNormalDeleteSimple(hwnd) {
         return
     try WinActivate "ahk_id " hwnd
     try WinWaitActive "ahk_id " hwnd, , 1
-    SetTimer(AutoConfirmTcDeleteDialog, 20)
-    ForceCloseDeleteDialogBurst(300)
+    SetTimer(AutoConfirmTcDeleteDialog, 10)
+    ForceCloseDeleteDialogBurst(500)
     try SendMessage 1075, 908, 0, , "ahk_id " hwnd ; cm_Delete
-    ForceCloseDeleteDialogBurst(900)
+    ForceCloseDeleteDialogBurst(1800)
     SetTimer(AutoConfirmTcDeleteDialog, 0)
 }
 
@@ -825,7 +847,10 @@ AutoConfirmTcDeleteDialog() {
     for title in ["Odstranit soubor", "Delete file"] {
         hwnd := WinExist(title " ahk_class #32770")
         if hwnd {
+            try ControlClick "Button1", "ahk_id " hwnd
             try ControlSend "{Enter}", , "ahk_id " hwnd
+            try PostMessage 0x100, 0x0D, 0, , "ahk_id " hwnd ; WM_KEYDOWN Enter
+            try PostMessage 0x101, 0x0D, 0, , "ahk_id " hwnd ; WM_KEYUP Enter
         }
     }
 }
