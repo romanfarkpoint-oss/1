@@ -593,23 +593,18 @@ HandleTcDeleteAyRecycle(listFileArg) {
         }
     }
 
-    ; V Komplet modu se nic nema mazat trvale.
-    ; NAS/B/M/T/X/Z + fallback (a cokoliv mimo recycle bucket) nechame na TC.
+    ; B: tichy delete mimo kos (bez TC dialogu).
     if (plan.BTc.Length > 0) {
-        TcDeleteLog("B branch active | forcing TC path")
+        TcDeleteLog("B branch active | silent delete (no dialog)")
         LogBRecycleBinDeepSnapshot("before_b_tc_delete")
-        RunTcNormalDeleteSimple(hwnd)
+        DeletePathsSilentNoPrompt(plan.BTc, "b_tc")
         LogBRecycleBinDeepSnapshot("after_b_tc_delete")
     }
 
+    ; Ostatni NAS jednotky M/T/X/Z: tichy delete mimo kos (bez TC dialogu).
     if (plan.Tc.Length > 0) {
-        if plan.BDriveTouched {
-            LogBRecycleBinDeepSnapshot("before_tc_delete")
-        }
-        RunTcNormalDeleteSimple(hwnd)
-        if plan.BDriveTouched {
-            LogBRecycleBinDeepSnapshot("after_tc_delete")
-        }
+        TcDeleteLog("tc branch active | silent delete (no dialog)")
+        DeletePathsSilentNoPrompt(plan.Tc, "tc")
     }
 
     if plan.BDriveTouched {
@@ -617,6 +612,15 @@ HandleTcDeleteAyRecycle(listFileArg) {
         LogBRecycleBinStateKomplet()
     }
     TcDeleteLog("audit end | id=" auditId " | recycle=" plan.Recycle.Length " | e_recycle=" plan.ERecycle.Length " | b_tc=" plan.BTc.Length " | tc=" plan.Tc.Length)
+}
+
+DeletePathsSilentNoPrompt(paths, bucketName := "") {
+    for , p in paths {
+        if !DeletePathSilentNoPrompt(p)
+            TcDeleteLog("silent delete FAIL | bucket=" bucketName " | path=" p)
+        else
+            TcDeleteLog("silent delete OK | bucket=" bucketName " | path=" p)
+    }
 }
 
 LogBRecycleBinDeepSnapshot(stage := "") {

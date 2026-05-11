@@ -58,6 +58,12 @@ RefreshTotalCommanderPanels() {
             WinActivate "ahk_id " hwnd
             WinWaitActive "ahk_id " hwnd, , 1
             SendMessage 1075, 540, 0, , "ahk_id " hwnd
+            Sleep 40
+            SendMessage 1075, 541, 0, , "ahk_id " hwnd
+            Sleep 40
+            SendMessage 1075, 540, 0, , "ahk_id " hwnd
+            Sleep 40
+            SendMessage 1075, 541, 0, , "ahk_id " hwnd
         }
     }
 }
@@ -111,6 +117,7 @@ StartAndSaveState(scriptPath, mode) {
     Run '"' AHK_EXE '" "' scriptPath '"', , , &newPid
     try FileDelete STATE_FILE
     FileAppend mode "|" newPid, STATE_FILE, "UTF-8"
+    Log("StartAndSaveState | mode=" mode " | pid=" newPid " | script=" scriptPath)
 }
 
 ReadState(&mode, &pid) {

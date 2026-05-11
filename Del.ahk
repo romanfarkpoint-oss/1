@@ -12,7 +12,7 @@ SetKeyDelay 30, 30
 ; ============================================================
 
 TEST_DISABLE_HOMESCAPES_TIMER := false
-TEST_DISABLE_IRFAN_HOOKS := false
+TEST_DISABLE_IRFAN_HOOKS := true
 
 if !TEST_DISABLE_HOMESCAPES_TIMER
     SetTimer(CheckHomescapes, 15000)
@@ -772,6 +772,9 @@ DeletePathsPermanent(paths) {
 }
 
 DeleteOnePermanent(path) {
+    if !RegExMatch(path, "i)^E:\\")
+        throw Error("Permanent delete je povoleny pouze pro E:\\ | path=" path)
+
     if IsDangerousRootPath(path) {
         throw Error("Nebezpecna cesta - koren disku nebo sdileni: " path)
     }
