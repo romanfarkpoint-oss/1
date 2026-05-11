@@ -226,7 +226,7 @@ function Analyze-File {
         StableCount = $stable.Count
         Crop = $first
         CropText = "crop=$($first.W):$($first.H):$($first.X):$($first.Y)"
-        FfmpegCmd = "ffmpeg -i \"$file\" -vf \"$('crop=' + $first.W + ':' + $first.H + ':' + $first.X + ':' + $first.Y)\" -c:a copy OUTPUT.mkv"
+        FfmpegCmd = ('ffmpeg -i "{0}" -vf "crop={1}:{2}:{3}:{4}" -c:a copy OUTPUT.mkv' -f $file, $first.W, $first.H, $first.X, $first.Y)
     }
 }
 
