@@ -576,7 +576,7 @@ HandleTcDeleteAyRecycle(listFileArg) {
     }
 
     plan := BuildKompletDeletePlan(paths)
-    TcDeleteLog("delete plan | recycle=" plan.Recycle.Length " | e_recycle=" plan.ERecycle.Length " | b_tc=" plan.BTc.Length " | tc=" plan.Tc.Length)
+    TcDeleteLog("delete plan | recycle=" plan.Recycle.Length " | b_tc=" plan.BTc.Length " | tc=" plan.Tc.Length)
 
     if (plan.Recycle.Length > 0) {
         if DeletePathsToRecycleBinSimple(plan.Recycle) {
@@ -585,14 +585,6 @@ HandleTcDeleteAyRecycle(listFileArg) {
             TcDeleteLog("recycle delete FAILED")
         }
     }
-    if (plan.ERecycle.Length > 0) {
-        if DeletePathsToRecycleBinSimple(plan.ERecycle) {
-            TcDeleteLog("E recycle delete OK")
-        } else {
-            TcDeleteLog("E recycle delete FAILED")
-        }
-    }
-
     ; B: tichy delete mimo kos (bez TC dialogu).
     if (plan.BTc.Length > 0) {
         TcDeleteLog("B branch active | silent delete (no dialog)")
@@ -611,7 +603,7 @@ HandleTcDeleteAyRecycle(listFileArg) {
         TcDeleteLog("audit b-drive touched | id=" auditId)
         LogBRecycleBinStateKomplet()
     }
-    TcDeleteLog("audit end | id=" auditId " | recycle=" plan.Recycle.Length " | e_recycle=" plan.ERecycle.Length " | b_tc=" plan.BTc.Length " | tc=" plan.Tc.Length)
+    TcDeleteLog("audit end | id=" auditId " | recycle=" plan.Recycle.Length " | b_tc=" plan.BTc.Length " | tc=" plan.Tc.Length)
 }
 
 DeletePathsSilentNoPrompt(paths, bucketName := "") {
@@ -650,7 +642,7 @@ LogBRecycleBinDeepSnapshot(stage := "") {
 }
 
 BuildKompletDeletePlan(paths) {
-    plan := {Recycle: [], ERecycle: [], BTc: [], Tc: [], BDriveTouched: false}
+    plan := {Recycle: [], BTc: [], Tc: [], BDriveTouched: false}
     for , raw in paths {
         p := Trim(raw, " `t`r`n" . Chr(34))
         if (p = "")
@@ -658,8 +650,6 @@ BuildKompletDeletePlan(paths) {
         bucket := ClassifyKompletDeleteBucket(p)
         if (bucket = "recycle")
             plan.Recycle.Push(p)
-        else if (bucket = "e_recycle")
-            plan.ERecycle.Push(p)
         else if (bucket = "b_tc")
             plan.BTc.Push(p)
         else
@@ -679,8 +669,6 @@ ClassifyKompletDeleteBucket(path) {
         return "b_tc"
     if (d = "M" || d = "T" || d = "X" || d = "Z")
         return "tc"
-    if (d = "E")
-        return "e_recycle"
     if InStr("A,C,D,F,G,H,I,J,K,L,N,O,P,Q,R,S,U,V,W,Y", d)
         return "recycle"
 

@@ -271,10 +271,11 @@ ClassifyDeleteBucket(path) {
     if (d = "E")
         return "permanent"
 
-    ; V Del modu: vse mimo E:\ do Kose.
-    if IsNetworkPath(p)
+    ; Jednotky, ktere maji jit vzdy do Kose.
+    if InStr("A,C,D,F,G,H,I,J,K,L,N,O,P,Q,R,S,U,V,W,Y", d)
         return "recycle"
 
+    ; Vse ostatni (vc. novych pismen) taky do Kose.
     return "recycle"
 }
 
