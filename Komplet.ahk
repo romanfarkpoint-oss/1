@@ -679,11 +679,9 @@ ClassifyKompletDeleteBucket(path) {
         return "b_tc"
     if (d = "M" || d = "T" || d = "X" || d = "Z")
         return "tc"
-    if (d = "A" || d = "Y")
-        return "recycle"
     if (d = "E")
         return "e_recycle"
-    if (d = "C" || d = "D" || d = "P")
+    if InStr("A,C,D,F,G,H,I,J,K,L,N,O,P,Q,R,S,U,V,W,Y", d)
         return "recycle"
 
     ; Ostatni sitove/UNC a nove jednotky (napr. L:) standardne do Windows Kose.

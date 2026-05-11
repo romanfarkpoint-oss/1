@@ -11,8 +11,8 @@ SetKeyDelay 30, 30
 ; HOMESCAPES KONTROLA HLASITOSTI
 ; ============================================================
 
-TEST_DISABLE_HOMESCAPES_TIMER := false
-TEST_DISABLE_IRFAN_HOOKS := true
+TEST_DISABLE_HOMESCAPES_TIMER := true
+TEST_DISABLE_IRFAN_HOOKS := false
 
 if !TEST_DISABLE_HOMESCAPES_TIMER
     SetTimer(CheckHomescapes, 15000)

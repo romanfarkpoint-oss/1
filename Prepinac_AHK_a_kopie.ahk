@@ -59,11 +59,11 @@ RefreshTotalCommanderPanels() {
             WinWaitActive "ahk_id " hwnd, , 1
             SendMessage 1075, 540, 0, , "ahk_id " hwnd
             Sleep 40
-            SendMessage 1075, 541, 0, , "ahk_id " hwnd
+            ControlSend "{Tab}", , "ahk_id " hwnd
             Sleep 40
             SendMessage 1075, 540, 0, , "ahk_id " hwnd
             Sleep 40
-            SendMessage 1075, 541, 0, , "ahk_id " hwnd
+            ControlSend "{Tab}", , "ahk_id " hwnd
         }
     }
 }
@@ -275,9 +275,20 @@ DeleteDirectoryContents(dirPath) {
 }
 
 DeleteHardFolder(dirPath) {
+    global LOG_FILE
     if !DirExist(dirPath)
         return
-    try DirDelete dirPath, true
+    Loop Files, dirPath "\*", "FD" {
+        full := A_LoopFilePath
+        if (StrLower(full) = StrLower(LOG_FILE))
+            continue
+        try {
+            if DirExist(full)
+                DirDelete full, true
+            else
+                FileDelete full
+        }
+    }
 }
 
 main()
