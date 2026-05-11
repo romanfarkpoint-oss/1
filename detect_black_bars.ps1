@@ -23,7 +23,7 @@ $videoExt = @('.mp4','.mkv','.avi','.mov','.wmv','.m4v','.ts','.m2ts','.mpg','.m
 
 
 function Show-DetailedProcedure {
-    Write-Host "=" * 60 -ForegroundColor DarkGray
+    Write-Host ("=" * 60) -ForegroundColor DarkGray
     Write-Host "PODROBNY POSTUP" -ForegroundColor Cyan
     Write-Host "1) Skript projde NAS slozky s filmy/serialy/pohadkami." -ForegroundColor Gray
     Write-Host "2) U kazdeho videa zjisti delku (ffprobe)." -ForegroundColor Gray
@@ -32,7 +32,7 @@ function Show-DetailedProcedure {
     Write-Host "5) Overi stabilitu cropu, aby odfiltroval tmave sceny." -ForegroundColor Gray
     Write-Host "6) Podezrele soubory zapise do vystupu vcetne FFmpeg crop prikazu." -ForegroundColor Gray
     Write-Host "7) Po dokonceni odesle zvuk do aktivni uzivatelske relace." -ForegroundColor Gray
-    Write-Host "=" * 60 -ForegroundColor DarkGray
+    Write-Host ("=" * 60) -ForegroundColor DarkGray
 }
 
 function Get-ActiveUserSessionId {
@@ -118,7 +118,13 @@ try {
 
 function Get-VideoDurationSec {
     param([string]$file)
-    $dur = & $ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 -- "$file" 2>$null
+    $prevEap = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $dur = & $ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 -- "$file" 2>$null
+    } finally {
+        $ErrorActionPreference = $prevEap
+    }
     if (-not $dur) { return $null }
     [double]::Parse($dur.Trim(), [System.Globalization.CultureInfo]::InvariantCulture)
 }
@@ -167,7 +173,13 @@ function Get-CropdetectForTime {
         '-'
     )
 
-    $output = & $ffmpeg @args 2>&1
+    $prevEap = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $output = & $ffmpeg @args 2>&1
+    } finally {
+        $ErrorActionPreference = $prevEap
+    }
     $crops = @()
     foreach ($line in $output) {
         $parsed = Parse-CropLine -line $line
