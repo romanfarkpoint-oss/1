@@ -409,6 +409,7 @@ if ($results.Count -eq 0) {
     $content = $header + @('Nenalezeny žádné jednoznačně stabilní černé okraje.')
     $content | Set-Content -LiteralPath $outFile -Encoding UTF8
     Write-Host "Hotovo. Výstup: $outFile"
+    Write-Host ("Souhrn: Analyzovano videi: {0}, Nalezeno kandidatu: 0, Trvani: {1:hh\\:mm\\:ss}" -f $videos.Count, $sw.Elapsed) -ForegroundColor Cyan
     return
 }
 
@@ -424,6 +425,7 @@ $body = foreach ($r in $results | Sort-Object File) {
 
 ($header + $body) | Set-Content -LiteralPath $outFile -Encoding UTF8
 Write-Host "Hotovo. Nalezeno podezřelých souborů: $($results.Count). Výstup: $outFile"
+Write-Host ("Souhrn: Analyzovano videi: {0}, Nalezeno kandidatu: {1}, Trvani: {2:hh\\:mm\\:ss}" -f $videos.Count, $results.Count, $sw.Elapsed) -ForegroundColor Cyan
 
 } finally {
     Play-FinishSoundViaPsExec
