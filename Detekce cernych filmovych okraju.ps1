@@ -110,11 +110,26 @@ function Play-FinishSoundViaPsExec {
         return
     }
 
+    # 1) Nejprve zkus prehrani primo v aktualni relaci (nejspolehlivejsi varianta).
+    $localPlayed = $false
+    try {
+        $playerLocal = New-Object System.Media.SoundPlayer
+        $playerLocal.SoundLocation = $WavPath
+        $playerLocal.Load()
+        $playerLocal.PlaySync()
+        $localPlayed = $true
+        Write-Host "Zvuk prehran lokalne." -ForegroundColor Green
+    } catch {
+        try { [System.Media.SystemSounds]::Asterisk.Play() } catch {}
+    }
+
     $sessionId = Get-ActiveUserSessionId
 
     if ($null -eq $sessionId) {
         Write-Host "Nepodarilo se zjistit aktivni uzivatelskou relaci." -ForegroundColor Yellow
-        try { (New-Object Media.SoundPlayer $WavPath).PlaySync() } catch { [console]::beep(1200,250) }
+        if (-not $localPlayed) {
+            try { (New-Object System.Media.SoundPlayer $WavPath).PlaySync() } catch { [console]::beep(1200,250) }
+        }
         return
     }
 
@@ -149,7 +164,9 @@ try {
     } catch {
         Write-Host "Nepodarilo se prehrat zvuk pres PsExec:" -ForegroundColor Red
         Write-Host $_.Exception.Message -ForegroundColor Red
-        try { (New-Object Media.SoundPlayer $WavPath).PlaySync() } catch { [console]::beep(1200,250) }
+        if (-not $localPlayed) {
+            try { (New-Object System.Media.SoundPlayer $WavPath).PlaySync() } catch { [console]::beep(1200,250) }
+        }
     }
 }
 
@@ -296,8 +313,8 @@ function Analyze-File {
     if ($sourceRes) {
         $removedW = [Math]::Max(0, $sourceRes.W - $first.W)
         $removedH = [Math]::Max(0, $sourceRes.H - $first.H)
-        $minW = [Math]::Max(8, [Math]::Ceiling($sourceRes.W * 0.03))
-        $minH = [Math]::Max(8, [Math]::Ceiling($sourceRes.H * 0.03))
+        $minW = [Math]::Max(4, [Math]::Ceiling($sourceRes.W * 0.015))
+        $minH = [Math]::Max(4, [Math]::Ceiling($sourceRes.H * 0.015))
         if ($removedW -lt $minW -and $removedH -lt $minH) { return $null }
     }
 
@@ -348,12 +365,16 @@ foreach ($s in $rootStats) {
 $results = @()
 $idx = 0
 $sw = [System.Diagnostics.Stopwatch]::StartNew()
+$lastEtaPrint = [datetime]::MinValue
 foreach ($v in $videos) {
     $idx++
     $avg = if ($idx -gt 1) { $sw.Elapsed.TotalSeconds / ($idx - 1) } else { 0 }
     $remain = [Math]::Max(0, ($videos.Count - $idx) * $avg)
     $eta = [TimeSpan]::FromSeconds($remain).ToString("hh\\:mm\\:ss")
-    Write-Host "[$idx/$($videos.Count)] ETA $eta | Analyzuji: $($v.FullName)"
+    if ((Get-Date) -gt $lastEtaPrint.AddSeconds(20) -or $idx -eq 1 -or $idx -eq $videos.Count) {
+        Write-Host ("Prubeh: {0}/{1} | Zbyvajici cas: {2}" -f $idx, $videos.Count, $eta) -ForegroundColor DarkCyan
+        $lastEtaPrint = Get-Date
+    }
     try {
         $res = Analyze-File -file $v.FullName
         if ($res) { $results += $res }
