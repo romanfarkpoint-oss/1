@@ -19,6 +19,9 @@ $pathsToScan = @(
 )
 
 if ($CustomPaths -and $CustomPaths.Count -gt 0) {
+    if ($CustomPaths.Count -eq 1 -and $CustomPaths[0] -match ',') {
+        $CustomPaths = $CustomPaths[0].Split(',') | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+    }
     $pathsToScan = $CustomPaths
 }
 
