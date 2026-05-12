@@ -1,5 +1,9 @@
 # Detect videos with burned-in black bars and suggest safe FFmpeg crop values.
 
+param(
+    [string[]]$CustomPaths
+)
+
 $ErrorActionPreference = 'Stop'
 
 # V PowerShell 7 nativni stderr muze vyvolat exception pri ErrorActionPreference=Stop.
@@ -13,6 +17,10 @@ $pathsToScan = @(
     '\\QNAS1911\08 TV\02 Serialy',
     '\\QNAS1911\08 TV\03 Pohadky'
 )
+
+if ($CustomPaths -and $CustomPaths.Count -gt 0) {
+    $pathsToScan = $CustomPaths
+}
 
 $outFile = 'D:\Vypis cernych filmovych okraju.txt'
 
@@ -254,22 +262,32 @@ Show-DetailedProcedure
 if (-not (Test-Path -LiteralPath $ffmpeg)) { throw "Nenalezen ffmpeg: $ffmpeg" }
 if (-not (Test-Path -LiteralPath $ffprobe)) { throw "Nenalezen ffprobe: $ffprobe" }
 
-$videos = foreach ($root in $pathsToScan) {
-    if (Test-Path -LiteralPath $root) {
-        Get-ChildItem -LiteralPath $root -File -Recurse -ErrorAction SilentlyContinue |
-            Where-Object { $videoExt -contains $_.Extension.ToLowerInvariant() }
+$rootStats = @()
+$allFiles = @()
+foreach ($root in $pathsToScan) {
+    $exists = Test-Path -LiteralPath $root
+    if (-not $exists) {
+        $rootStats += [pscustomobject]@{ Root = $root; Exists = $false; FileCount = 0 }
+        continue
     }
+
+    $files = @(Get-ChildItem -LiteralPath $root -File -Recurse -Force -ErrorAction SilentlyContinue)
+    $allFiles += $files
+    $rootStats += [pscustomobject]@{ Root = $root; Exists = $true; FileCount = $files.Count }
 }
 
-$totalFilesScanned = 0
-foreach ($root in $pathsToScan) {
-    if (Test-Path -LiteralPath $root) {
-        $totalFilesScanned += (Get-ChildItem -LiteralPath $root -File -Recurse -ErrorAction SilentlyContinue | Measure-Object).Count
-    }
-}
+$videos = $allFiles | Where-Object { $videoExt -contains $_.Extension.ToLowerInvariant() }
+$totalFilesScanned = $allFiles.Count
 
 Write-Host "Nalezeno souboru celkem: $totalFilesScanned" -ForegroundColor Cyan
 Write-Host "Z toho videi k analyze: $($videos.Count)" -ForegroundColor Cyan
+foreach ($s in $rootStats) {
+    if ($s.Exists) {
+        Write-Host ("  OK   {0} -> {1} souboru" -f $s.Root, $s.FileCount) -ForegroundColor DarkGray
+    } else {
+        Write-Warning ("CHYBI cesta: {0}" -f $s.Root)
+    }
+}
 
 $results = @()
 $idx = 0
