@@ -79,6 +79,9 @@ function Get-ActiveUserSessionId {
 
     foreach ($line in $lines | Select-Object -Skip 1) {
         $clean = $line.Trim()
+        if ($clean -match '^\>?\s*\S+\s+\S+\s+(\d+)\s+Active\b') {
+            return [int]$matches[1]
+        }
         if ($clean -match '\s+(\d+)\s+Active\s+') {
             return [int]$matches[1]
         }
@@ -103,6 +106,7 @@ function Play-FinishSoundViaPsExec {
 
     if (-not (Test-Path -LiteralPath $WavPath -PathType Leaf)) {
         Write-Host "WAV soubor nenalezen: $WavPath" -ForegroundColor Yellow
+        [console]::beep(1200,250)
         return
     }
 
@@ -110,6 +114,7 @@ function Play-FinishSoundViaPsExec {
 
     if ($null -eq $sessionId) {
         Write-Host "Nepodarilo se zjistit aktivni uzivatelskou relaci." -ForegroundColor Yellow
+        try { (New-Object Media.SoundPlayer $WavPath).PlaySync() } catch { [console]::beep(1200,250) }
         return
     }
 
@@ -144,6 +149,7 @@ try {
     } catch {
         Write-Host "Nepodarilo se prehrat zvuk pres PsExec:" -ForegroundColor Red
         Write-Host $_.Exception.Message -ForegroundColor Red
+        try { (New-Object Media.SoundPlayer $WavPath).PlaySync() } catch { [console]::beep(1200,250) }
     }
 }
 
@@ -286,6 +292,15 @@ function Analyze-File {
     $heightReduced = ($first.Y -gt 0) -or ($sourceRes -and $first.H -lt $sourceRes.H)
     if (-not ($widthReduced -or $heightReduced)) { return $null }
 
+    # Ignoruj velmi malé ořezy (typicky analogový šum/overscan), aby nebyly falešné poplachy.
+    if ($sourceRes) {
+        $removedW = [Math]::Max(0, $sourceRes.W - $first.W)
+        $removedH = [Math]::Max(0, $sourceRes.H - $first.H)
+        $minW = [Math]::Max(8, [Math]::Ceiling($sourceRes.W * 0.03))
+        $minH = [Math]::Max(8, [Math]::Ceiling($sourceRes.H * 0.03))
+        if ($removedW -lt $minW -and $removedH -lt $minH) { return $null }
+    }
+
     [pscustomobject]@{
         File = $file
         Duration = $duration
@@ -332,9 +347,13 @@ foreach ($s in $rootStats) {
 
 $results = @()
 $idx = 0
+$sw = [System.Diagnostics.Stopwatch]::StartNew()
 foreach ($v in $videos) {
     $idx++
-    Write-Host "[$idx/$($videos.Count)] Analyzuji: $($v.FullName)"
+    $avg = if ($idx -gt 1) { $sw.Elapsed.TotalSeconds / ($idx - 1) } else { 0 }
+    $remain = [Math]::Max(0, ($videos.Count - $idx) * $avg)
+    $eta = [TimeSpan]::FromSeconds($remain).ToString("hh\\:mm\\:ss")
+    Write-Host "[$idx/$($videos.Count)] ETA $eta | Analyzuji: $($v.FullName)"
     try {
         $res = Analyze-File -file $v.FullName
         if ($res) { $results += $res }
@@ -363,7 +382,7 @@ $header = @(
 
 if ($results.Count -eq 0) {
     $content = $header + @('Nenalezeny žádné jednoznačně stabilní černé okraje.')
-    $content | Set-Content -LiteralPath $outFile -Encoding Unicode
+    $content | Set-Content -LiteralPath $outFile -Encoding UTF8
     Write-Host "Hotovo. Výstup: $outFile"
     return
 }
@@ -378,7 +397,7 @@ $body = foreach ($r in $results | Sort-Object File) {
     )
 }
 
-($header + $body) | Set-Content -LiteralPath $outFile -Encoding Unicode
+($header + $body) | Set-Content -LiteralPath $outFile -Encoding UTF8
 Write-Host "Hotovo. Nalezeno podezřelých souborů: $($results.Count). Výstup: $outFile"
 
 } finally {
