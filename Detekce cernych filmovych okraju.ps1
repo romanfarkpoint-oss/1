@@ -261,6 +261,16 @@ $videos = foreach ($root in $pathsToScan) {
     }
 }
 
+$totalFilesScanned = 0
+foreach ($root in $pathsToScan) {
+    if (Test-Path -LiteralPath $root) {
+        $totalFilesScanned += (Get-ChildItem -LiteralPath $root -File -Recurse -ErrorAction SilentlyContinue | Measure-Object).Count
+    }
+}
+
+Write-Host "Nalezeno souboru celkem: $totalFilesScanned" -ForegroundColor Cyan
+Write-Host "Z toho videi k analyze: $($videos.Count)" -ForegroundColor Cyan
+
 $results = @()
 $idx = 0
 foreach ($v in $videos) {
@@ -278,11 +288,23 @@ $header = @(
     "Detekce zapečených černých okrajů"
     "Datum: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
     "Skenované složky:"
-) + ($pathsToScan | ForEach-Object { " - $_" }) + @('')
+) + ($pathsToScan | ForEach-Object { " - $_" }) + @(
+    "",
+    "Srozumitelný popis pro laika:",
+    "1) 'Nalezeno souboru celkem' = úplně všechny soubory ve složkách (video, titulky, obrázky...).",
+    "2) 'Z toho videí k analýze' = jen video soubory podle podporovaných přípon.",
+    "3) U každého videa se analyzuje více časů, aby se odlišila tmavá scéna od stálého černého okraje.",
+    "4) Do výsledku jdou jen soubory se stabilním opakováním stejných okrajů.",
+    "",
+    "Statistika běhu:",
+    " - Nalezeno souboru celkem: $totalFilesScanned",
+    " - Z toho videí k analýze: $($videos.Count)",
+    ""
+)
 
 if ($results.Count -eq 0) {
     $content = $header + @('Nenalezeny žádné jednoznačně stabilní černé okraje.')
-    $content | Set-Content -LiteralPath $outFile -Encoding UTF8
+    $content | Set-Content -LiteralPath $outFile -Encoding Unicode
     Write-Host "Hotovo. Výstup: $outFile"
     Play-FinishSoundViaPsExec
     exit 0
@@ -298,6 +320,6 @@ $body = foreach ($r in $results | Sort-Object File) {
     )
 }
 
-($header + $body) | Set-Content -LiteralPath $outFile -Encoding UTF8
+($header + $body) | Set-Content -LiteralPath $outFile -Encoding Unicode
 Write-Host "Hotovo. Nalezeno podezřelých souborů: $($results.Count). Výstup: $outFile"
 Play-FinishSoundViaPsExec
