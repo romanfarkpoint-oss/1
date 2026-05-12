@@ -260,6 +260,7 @@ function Analyze-File {
     }
 }
 
+try {
 Show-DetailedProcedure
 
 if (-not (Test-Path -LiteralPath $ffmpeg)) { throw "Nenalezen ffmpeg: $ffmpeg" }
@@ -327,8 +328,7 @@ if ($results.Count -eq 0) {
     $content = $header + @('Nenalezeny žádné jednoznačně stabilní černé okraje.')
     $content | Set-Content -LiteralPath $outFile -Encoding Unicode
     Write-Host "Hotovo. Výstup: $outFile"
-    Play-FinishSoundViaPsExec
-    exit 0
+    return
 }
 
 $body = foreach ($r in $results | Sort-Object File) {
@@ -343,4 +343,7 @@ $body = foreach ($r in $results | Sort-Object File) {
 
 ($header + $body) | Set-Content -LiteralPath $outFile -Encoding Unicode
 Write-Host "Hotovo. Nalezeno podezřelých souborů: $($results.Count). Výstup: $outFile"
-Play-FinishSoundViaPsExec
+
+} finally {
+    Play-FinishSoundViaPsExec
+}
