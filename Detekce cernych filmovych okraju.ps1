@@ -160,6 +160,21 @@ function Get-VideoDurationSec {
     [double]::Parse($dur.Trim(), [System.Globalization.CultureInfo]::InvariantCulture)
 }
 
+function Get-VideoResolution {
+    param([string]$file)
+    $prevEap = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $raw = & $ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0:s=x -- "$file" 2>$null
+    } finally {
+        $ErrorActionPreference = $prevEap
+    }
+    if (-not $raw) { return $null }
+    $parts = $raw.Trim().Split('x')
+    if ($parts.Count -ne 2) { return $null }
+    return [pscustomobject]@{ W = [int]$parts[0]; H = [int]$parts[1] }
+}
+
 function Get-SampleTimes {
     param([double]$duration)
 
@@ -196,7 +211,8 @@ function Get-CropdetectForTime {
         '-ss', $timeSec,
         '-i', $file,
         '-t', '3',
-        '-vf', 'fps=2,cropdetect=24:16:0',
+        # round=2 je citlivejsi na tenke (1-4 px) zapečene okraje.
+        '-vf', 'fps=3,cropdetect=20:2:0',
         '-an',
         '-sn',
         '-dn',
@@ -240,6 +256,7 @@ function Analyze-File {
     param([string]$file)
 
     $duration = Get-VideoDurationSec -file $file
+    $sourceRes = Get-VideoResolution -file $file
     $times = Get-SampleTimes -duration $duration
 
     $samples = @()
@@ -265,8 +282,8 @@ function Analyze-File {
 
     if ($same.Count -lt [Math]::Ceiling($stable.Count * 0.7)) { return $null }
 
-    $widthReduced = ($first.X -gt 0)
-    $heightReduced = ($first.Y -gt 0)
+    $widthReduced = ($first.X -gt 0) -or ($sourceRes -and $first.W -lt $sourceRes.W)
+    $heightReduced = ($first.Y -gt 0) -or ($sourceRes -and $first.H -lt $sourceRes.H)
     if (-not ($widthReduced -or $heightReduced)) { return $null }
 
     [pscustomobject]@{
