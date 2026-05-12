@@ -14,8 +14,8 @@ if ($PSVersionTable.PSVersion.Major -ge 7) {
 
 $pathsToScan = @(
     '\\QNAS1911\08 TV\01 Filmy',
-    '\\QNAS1911\08 TV\02 Seriály',
-    '\\QNAS1911\08 TV\03 Pohádky'
+    '\\QNAS1911\08 TV\02 Serialy',
+    '\\QNAS1911\08 TV\03 Pohadky'
 )
 
 if ($CustomPaths -and $CustomPaths.Count -gt 0) {
@@ -121,6 +121,11 @@ function Play-FinishSoundViaPsExec {
         Write-Host "Zvuk prehran lokalne." -ForegroundColor Green
     } catch {
         try { [System.Media.SystemSounds]::Asterisk.Play() } catch {}
+    }
+
+    if ($localPlayed) {
+        Write-Host "Preskakuji PsExec - lokalni zvuk uz byl uspesne prehrany." -ForegroundColor DarkGray
+        return
     }
 
     $sessionId = Get-ActiveUserSessionId
@@ -369,7 +374,7 @@ foreach ($v in $videos) {
     $idx++
     $avg = if ($idx -gt 1) { $sw.Elapsed.TotalSeconds / ($idx - 1) } else { 0 }
     $remain = [Math]::Max(0, ($videos.Count - $idx) * $avg)
-    $eta = [TimeSpan]::FromSeconds($remain).ToString("hh\\:mm\\:ss")
+    $eta = "{0:hh\\:mm\\:ss}" -f ([TimeSpan]::FromSeconds($remain))
     $percent = if ($videos.Count -gt 0) { [int](($idx / $videos.Count) * 100) } else { 100 }
     Write-Progress -Activity "Analyza videi" -Status ("Soubor {0}/{1} | Zbyva ~ {2}" -f $idx, $videos.Count, $eta) -PercentComplete $percent
     try {
