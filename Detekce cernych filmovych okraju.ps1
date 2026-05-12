@@ -365,16 +365,13 @@ foreach ($s in $rootStats) {
 $results = @()
 $idx = 0
 $sw = [System.Diagnostics.Stopwatch]::StartNew()
-$lastEtaPrint = [datetime]::MinValue
 foreach ($v in $videos) {
     $idx++
     $avg = if ($idx -gt 1) { $sw.Elapsed.TotalSeconds / ($idx - 1) } else { 0 }
     $remain = [Math]::Max(0, ($videos.Count - $idx) * $avg)
     $eta = [TimeSpan]::FromSeconds($remain).ToString("hh\\:mm\\:ss")
-    if ((Get-Date) -gt $lastEtaPrint.AddSeconds(20) -or $idx -eq 1 -or $idx -eq $videos.Count) {
-        Write-Host ("Prubeh: {0}/{1} | Zbyvajici cas: {2}" -f $idx, $videos.Count, $eta) -ForegroundColor DarkCyan
-        $lastEtaPrint = Get-Date
-    }
+    $percent = if ($videos.Count -gt 0) { [int](($idx / $videos.Count) * 100) } else { 100 }
+    Write-Progress -Activity "Analyza videi" -Status ("Soubor {0}/{1} | Zbyva ~ {2}" -f $idx, $videos.Count, $eta) -PercentComplete $percent
     try {
         $res = Analyze-File -file $v.FullName
         if ($res) { $results += $res }
@@ -382,6 +379,8 @@ foreach ($v in $videos) {
         Write-Warning "Chyba u souboru: $($v.FullName) :: $($_.Exception.Message)"
     }
 }
+$sw.Stop()
+Write-Progress -Activity "Analyza videi" -Completed
 
 $header = @(
     "Detekce zapečených černých okrajů"
