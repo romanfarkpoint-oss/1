@@ -14,8 +14,8 @@ if ($PSVersionTable.PSVersion.Major -ge 7) {
 
 $pathsToScan = @(
     '\\QNAS1911\08 TV\01 Filmy',
-    '\\QNAS1911\08 TV\02 Serialy',
-    '\\QNAS1911\08 TV\03 Pohadky'
+    '\\QNAS1911\08 TV\02 Seriály',
+    '\\QNAS1911\08 TV\03 Pohádky'
 )
 
 if ($CustomPaths -and $CustomPaths.Count -gt 0) {
@@ -24,6 +24,26 @@ if ($CustomPaths -and $CustomPaths.Count -gt 0) {
     }
     $pathsToScan = $CustomPaths
 }
+
+function Resolve-ScanPath {
+    param([string]$path)
+    if (Test-Path -LiteralPath $path) { return $path }
+
+    $fallbackMap = @{
+        '\\QNAS1911\08 TV\02 Serialy' = '\\QNAS1911\08 TV\02 Seriály'
+        '\\QNAS1911\08 TV\03 Pohadky' = '\\QNAS1911\08 TV\03 Pohádky'
+        '\\QNAS1911\08 TV\02 Seriály' = '\\QNAS1911\08 TV\02 Serialy'
+        '\\QNAS1911\08 TV\03 Pohádky' = '\\QNAS1911\08 TV\03 Pohadky'
+    }
+
+    if ($fallbackMap.ContainsKey($path)) {
+        $alt = $fallbackMap[$path]
+        if (Test-Path -LiteralPath $alt) { return $alt }
+    }
+    return $path
+}
+
+$pathsToScan = $pathsToScan | ForEach-Object { Resolve-ScanPath -path $_ } | Select-Object -Unique
 
 $outFile = 'D:\Vypis cernych filmovych okraju.txt'
 
