@@ -43,23 +43,22 @@ call :logrun rmdir /s /q "C:\ProgramData\TC_ConfigDeploy"
 call :logrun reg delete "HKLM\Software\Microsoft\Active Setup\Installed Components\{8F7B99BB-8C5A-4E7B-9D7A-TC0000000001}" /f
 call :logrun rmdir /s /q "C:\Users\R\AppData\Roaming\GHISLER"
 call :logrun rmdir /s /q "C:\Users\L\AppData\Roaming\GHISLER"
+call :logrun rmdir /s /q "%APPDATA%\GHISLER"
 call :logrun reg delete "HKCU\Software\Microsoft\Active Setup\Installed Components\{8F7B99BB-8C5A-4E7B-9D7A-TC0000000001}" /f
 call :logrun reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings\Zones\3" /v 1806 /t REG_DWORD /d 1 /f
 
-:: 3) mirnejsi temp cleanup - jen top-level soubory/slozky
+:: 3) restart explorer co nejdriv (aby se necekalo)
+call :logrun taskkill /f /im explorer.exe
+timeout /t 1 >nul
+start explorer.exe
+
+:: 4) rychly temp cleanup - jen top-level soubory (bez prochazeni podslozek)
 if exist "%TEMP%\" (
     call :logrun del /f /q "%TEMP%\*"
-    for /d %%D in ("%TEMP%\*") do call :logrun rd /s /q "%%~fD"
 )
 if exist "C:\Windows\Temp\" (
     call :logrun del /f /q "C:\Windows\Temp\*"
-    for /d %%D in ("C:\Windows\Temp\*") do call :logrun rd /s /q "%%~fD"
 )
-
-:: 4) restart explorer
-call :logrun taskkill /f /im explorer.exe
-timeout /t 2 >nul
-start explorer.exe
 
 :: 5) znovu otevrit Total Commander (bez cekani)
 call :start_tc
