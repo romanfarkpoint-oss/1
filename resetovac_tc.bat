@@ -4,10 +4,13 @@ setlocal EnableExtensions EnableDelayedExpansion
 set "LOG_DIR=C:\log"
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%" >nul 2>&1
 set "LOG=%LOG_DIR%\log.txt"
+set "TC_PATH=P:\Programy\Totalcmd\TOTALCMD64.EXE"
 
-:: vzdy novy kompletni log
->"%LOG%" echo ===== START %DATE% %TIME% =====
+:: append log (kazdy beh novy blok)
+>>"%LOG%" echo.
+>>"%LOG%" echo ===== START %DATE% %TIME% =====
 >>"%LOG%" echo [INFO] Script: %~f0
+>>"%LOG%" echo [INFO] TC_PATH: %TC_PATH%
 
 net session >nul 2>&1
 if not "%errorlevel%"=="0" (
@@ -66,7 +69,8 @@ exit /b
 
 :start_tc
 set "TC_EXE="
-for /f "skip=2 tokens=2,*" %%A in ('reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\TOTALCMD64.EXE" /ve 2^>nul') do set "TC_EXE=%%B"
+if exist "%TC_PATH%" set "TC_EXE=%TC_PATH%"
+if not defined TC_EXE for /f "skip=2 tokens=2,*" %%A in ('reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\TOTALCMD64.EXE" /ve 2^>nul') do set "TC_EXE=%%B"
 if not defined TC_EXE for /f "skip=2 tokens=2,*" %%A in ('reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\TOTALCMD.EXE" /ve 2^>nul') do set "TC_EXE=%%B"
 if not defined TC_EXE if exist "C:\Program Files\totalcmd\TOTALCMD64.EXE" set "TC_EXE=C:\Program Files\totalcmd\TOTALCMD64.EXE"
 if not defined TC_EXE if exist "C:\Program Files\totalcmd\TOTALCMD.EXE" set "TC_EXE=C:\Program Files\totalcmd\TOTALCMD.EXE"
@@ -75,6 +79,7 @@ if not defined TC_EXE if exist "C:\totalcmd\TOTALCMD.EXE" set "TC_EXE=C:\totalcm
 if defined TC_EXE (
   >>"%LOG%" echo [INFO] Spoustim TC: !TC_EXE!
   start "" "!TC_EXE!"
+  if errorlevel 1 explorer "%TC_PATH%"
 ) else (
   >>"%LOG%" echo [WARN] TC nenalezen pro automaticke spusteni.
 )
