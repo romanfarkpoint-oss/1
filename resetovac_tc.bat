@@ -9,7 +9,17 @@ if not exist "%ProgramData%\TC_ResetState" mkdir "%ProgramData%\TC_ResetState" >
 if not exist "%MASTER_LOG%" type nul > "%MASTER_LOG%" 2>nul
 
 net session >nul 2>&1
+if /i "%~1"=="--from-uac" (
+  set "FROM_UAC=1"
+  shift
+)
 if not "%errorlevel%"=="0" (
+  if /i "%FROM_UAC%"=="1" (
+    echo [CHYBA] Elevace selhala (po UAC stale bez admin prav).
+    echo [ELEVATE] ERROR: stale bez admin prav po UAC pokusu.>>"%MASTER_LOG%"
+    pause
+    exit /b 1
+  )
   echo [INFO] Spoustim znovu jako spravce...
   echo [INFO] Spoustim znovu jako spravce...>>"%MASTER_LOG%"
   call :try_elevate
@@ -143,16 +153,8 @@ exit /b
 :try_elevate
 set "ELEV_OK=0"
 
-echo [ELEVATE] TRY PowerShell...>>"%MASTER_LOG%"
-powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath 'cmd.exe' -ArgumentList '/c ""\"%~f0\" --elevated\"' -Verb RunAs" >nul 2>&1
-if "%errorlevel%"=="0" set "ELEV_OK=1"
-if "%ELEV_OK%"=="1" (
-  echo [ELEVATE] PowerShell OK>>"%MASTER_LOG%"
-  exit /b
-)
-
 echo [ELEVATE] TRY mshta...>>"%MASTER_LOG%"
-mshta "vbscript:CreateObject(""Shell.Application"").ShellExecute ""cmd.exe"", ""/c """"%~f0"""" --elevated"", """", ""runas"", 1 (close)"
+mshta "vbscript:CreateObject(""Shell.Application"").ShellExecute ""cmd.exe"", ""/c """"%~f0"""" --from-uac --elevated"", """", ""runas"", 1 (close)"
 if "%errorlevel%"=="0" set "ELEV_OK=1"
 if "%ELEV_OK%"=="1" (
   echo [ELEVATE] mshta OK>>"%MASTER_LOG%"
@@ -162,7 +164,7 @@ if "%ELEV_OK%"=="1" (
 echo [ELEVATE] TRY wscript...>>"%MASTER_LOG%"
 set "VBS=%TEMP%\elevate_resetovac_tc.vbs"
 > "%VBS%" echo Set UAC = CreateObject^("Shell.Application"^)
->>"%VBS%" echo UAC.ShellExecute "cmd.exe", "/c ""%~f0"" --elevated", "", "runas", 1
+>>"%VBS%" echo UAC.ShellExecute "cmd.exe", "/c ""%~f0"" --from-uac --elevated", "", "runas", 1
 wscript //nologo "%VBS%" >nul 2>&1
 if "%errorlevel%"=="0" set "ELEV_OK=1"
 del /q "%VBS%" >nul 2>&1
