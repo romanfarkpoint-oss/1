@@ -1,86 +1,51 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
 
-set "LOG_DIR=C:\log"
-if not exist "%LOG_DIR%" mkdir "%LOG_DIR%" >nul 2>&1
-set "LOG=%LOG_DIR%\log.txt"
 set "TC_PATH=P:\Programy\Totalcmd\TOTALCMD64.EXE"
-
-:: append log (kazdy beh novy blok)
->>"%LOG%" echo.
->>"%LOG%" echo ===== START %DATE% %TIME% =====
->>"%LOG%" echo [INFO] Script: %~f0
->>"%LOG%" echo [INFO] TC_PATH: %TC_PATH%
 
 net session >nul 2>&1
 if not "%errorlevel%"=="0" (
-  if /i "%~1"=="--admin" (
-    >>"%LOG%" echo [ERROR] Nepodarilo se ziskat admin prava.
-    echo [CHYBA] Nepodarilo se ziskat admin prava.
-    exit /b 1
-  )
+  if /i "%~1"=="--admin" exit /b 1
   echo [INFO] Script bude pokracovat v elevovanem okne.
   echo [INFO] Stiskni ENTER pro pokracovani...
   set /p "_go=>"
-  >>"%LOG%" echo [INFO] Spoustim znovu jako spravce...
   powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath $env:ComSpec -ArgumentList '/c ""%~f0"" --admin' -Verb RunAs" >nul 2>&1
   exit /b
 )
 
-:: 1) zavrit TC spolehlive
-call :logrun taskkill /f /im TOTALCMD64.EXE
-call :logrun taskkill /f /im TOTALCMD.EXE
-for /l %%I in (1,1,5) do (
-  tasklist | find /i "TOTALCMD64.EXE" >nul && call :logrun taskkill /f /im TOTALCMD64.EXE
-  tasklist | find /i "TOTALCMD.EXE" >nul && call :logrun taskkill /f /im TOTALCMD.EXE
+:: TVRDE ukonceni TC (vsechny varianty)
+taskkill /f /t /im TOTALCMD64.EXE >nul 2>&1
+taskkill /f /t /im TOTALCMD.EXE >nul 2>&1
+taskkill /f /t /im totalcmd64.exe >nul 2>&1
+taskkill /f /t /im totalcmd.exe >nul 2>&1
+
+:: opakovane pokusy + kontrola
+for /l %%I in (1,1,8) do (
+  tasklist | find /i "TOTALCMD64.EXE" >nul && taskkill /f /t /im TOTALCMD64.EXE >nul 2>&1
+  tasklist | find /i "TOTALCMD.EXE" >nul && taskkill /f /t /im TOTALCMD.EXE >nul 2>&1
   timeout /t 1 >nul
 )
 
-:: 2) reset
-call :logrun rmdir /s /q "C:\ProgramData\TC_ConfigDeploy"
-call :logrun reg delete "HKLM\Software\Microsoft\Active Setup\Installed Components\{8F7B99BB-8C5A-4E7B-9D7A-TC0000000001}" /f
-call :logrun rmdir /s /q "C:\Users\R\AppData\Roaming\GHISLER"
-call :logrun rmdir /s /q "C:\Users\L\AppData\Roaming\GHISLER"
-call :logrun rmdir /s /q "%APPDATA%\GHISLER"
-call :logrun reg delete "HKCU\Software\Microsoft\Active Setup\Installed Components\{8F7B99BB-8C5A-4E7B-9D7A-TC0000000001}" /f
-call :logrun reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings\Zones\3" /v 1806 /t REG_DWORD /d 1 /f
+:: reset
+rmdir /s /q "C:\ProgramData\TC_ConfigDeploy" >nul 2>&1
+reg delete "HKLM\Software\Microsoft\Active Setup\Installed Components\{8F7B99BB-8C5A-4E7B-9D7A-TC0000000001}" /f >nul 2>&1
+rmdir /s /q "C:\Users\R\AppData\Roaming\GHISLER" >nul 2>&1
+rmdir /s /q "C:\Users\L\AppData\Roaming\GHISLER" >nul 2>&1
+rmdir /s /q "%APPDATA%\GHISLER" >nul 2>&1
+reg delete "HKCU\Software\Microsoft\Active Setup\Installed Components\{8F7B99BB-8C5A-4E7B-9D7A-TC0000000001}" /f >nul 2>&1
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings\Zones\3" /v 1806 /t REG_DWORD /d 1 /f >nul 2>&1
 
-:: 3) rychly temp cleanup
-if exist "%TEMP%\" call :logrun del /f /q "%TEMP%\*"
-if exist "C:\Windows\Temp\" call :logrun del /f /q "C:\Windows\Temp\*"
+if exist "%TEMP%\" del /f /q "%TEMP%\*" >nul 2>&1
+if exist "C:\Windows\Temp\" del /f /q "C:\Windows\Temp\*" >nul 2>&1
 
-:: 4) explorer restart
-call :logrun taskkill /f /im explorer.exe
+taskkill /f /im explorer.exe >nul 2>&1
 timeout /t 1 >nul
 start explorer.exe
 
-:: 5) znovu spustit TC
-call :start_tc
-
->>"%LOG%" echo [OK] Dokonceno.
->>"%LOG%" echo ===== END %DATE% %TIME% =====
-exit /b
-
-:logrun
->>"%LOG%" echo [CMD] %*
-%* >>"%LOG%" 2>&1
->>"%LOG%" echo [RC] %errorlevel%
-exit /b
-
-:start_tc
-set "TC_EXE="
-if exist "%TC_PATH%" set "TC_EXE=%TC_PATH%"
-if not defined TC_EXE for /f "skip=2 tokens=2,*" %%A in ('reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\TOTALCMD64.EXE" /ve 2^>nul') do set "TC_EXE=%%B"
-if not defined TC_EXE for /f "skip=2 tokens=2,*" %%A in ('reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\TOTALCMD.EXE" /ve 2^>nul') do set "TC_EXE=%%B"
-if not defined TC_EXE if exist "C:\Program Files\totalcmd\TOTALCMD64.EXE" set "TC_EXE=C:\Program Files\totalcmd\TOTALCMD64.EXE"
-if not defined TC_EXE if exist "C:\Program Files\totalcmd\TOTALCMD.EXE" set "TC_EXE=C:\Program Files\totalcmd\TOTALCMD.EXE"
-if not defined TC_EXE if exist "C:\totalcmd\TOTALCMD64.EXE" set "TC_EXE=C:\totalcmd\TOTALCMD64.EXE"
-if not defined TC_EXE if exist "C:\totalcmd\TOTALCMD.EXE" set "TC_EXE=C:\totalcmd\TOTALCMD.EXE"
-if defined TC_EXE (
-  >>"%LOG%" echo [INFO] Spoustim TC: !TC_EXE!
-  start "" "!TC_EXE!"
-  if errorlevel 1 explorer "%TC_PATH%"
-) else (
-  >>"%LOG%" echo [WARN] TC nenalezen pro automaticke spusteni.
+:: start TC
+if exist "%TC_PATH%" start "" "%TC_PATH%"
+if not exist "%TC_PATH%" (
+  if exist "C:\Program Files\totalcmd\TOTALCMD64.EXE" start "" "C:\Program Files\totalcmd\TOTALCMD64.EXE"
 )
+
 exit /b
