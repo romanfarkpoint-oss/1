@@ -6,15 +6,13 @@ set "TC_GUID={8F7B99BB-8C5A-4E7B-9D7A-TC0000000001}"
 set "MASTER_LOG=P:\Programy\zSkripty\AHK\Já\log.txt"
 if not exist "P:\Programy\zSkripty\AHK\Já\" set "MASTER_LOG=%ProgramData%\TC_ResetState\log.txt"
 if not exist "%ProgramData%\TC_ResetState" mkdir "%ProgramData%\TC_ResetState" >nul 2>&1
+if not exist "%MASTER_LOG%" type nul > "%MASTER_LOG%" 2>nul
 
 net session >nul 2>&1
 if not "%errorlevel%"=="0" (
   echo [INFO] Spoustim znovu jako spravce...
   echo [INFO] Spoustim znovu jako spravce...>>"%MASTER_LOG%"
-  powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath 'cmd.exe' -ArgumentList '/c ""\"%~f0\" --elevated\"' -Verb RunAs" >nul 2>&1
-  if errorlevel 1 (
-    mshta "vbscript:CreateObject(""Shell.Application"").ShellExecute ""cmd.exe"", ""/c """"%~f0"""" --elevated"", """", ""runas"", 1 (close)"
-  )
+  call :try_elevate
   exit /b
 )
 if /i "%~1"=="--elevated" shift
@@ -141,6 +139,45 @@ echo [RC ] !errorlevel!>>"%LOG%"
 echo [RC ] !errorlevel!>>"%MASTER_LOG%"
 if not "!errorlevel!"=="0" set "HAS_ERROR=1"
 exit /b
+
+:try_elevate
+set "ELEV_OK=0"
+
+echo [ELEVATE] TRY PowerShell...>>"%MASTER_LOG%"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath 'cmd.exe' -ArgumentList '/c ""\"%~f0\" --elevated\"' -Verb RunAs" >nul 2>&1
+if "%errorlevel%"=="0" set "ELEV_OK=1"
+if "%ELEV_OK%"=="1" (
+  echo [ELEVATE] PowerShell OK>>"%MASTER_LOG%"
+  exit /b
+)
+
+echo [ELEVATE] TRY mshta...>>"%MASTER_LOG%"
+mshta "vbscript:CreateObject(""Shell.Application"").ShellExecute ""cmd.exe"", ""/c """"%~f0"""" --elevated"", """", ""runas"", 1 (close)"
+if "%errorlevel%"=="0" set "ELEV_OK=1"
+if "%ELEV_OK%"=="1" (
+  echo [ELEVATE] mshta OK>>"%MASTER_LOG%"
+  exit /b
+)
+
+echo [ELEVATE] TRY wscript...>>"%MASTER_LOG%"
+set "VBS=%TEMP%\elevate_resetovac_tc.vbs"
+> "%VBS%" echo Set UAC = CreateObject^("Shell.Application"^)
+>>"%VBS%" echo UAC.ShellExecute "cmd.exe", "/c ""%~f0"" --elevated", "", "runas", 1
+wscript //nologo "%VBS%" >nul 2>&1
+if "%errorlevel%"=="0" set "ELEV_OK=1"
+del /q "%VBS%" >nul 2>&1
+if "%ELEV_OK%"=="1" (
+  echo [ELEVATE] wscript OK>>"%MASTER_LOG%"
+  exit /b
+)
+
+echo [ELEVATE] ERROR: elevation failed by all methods.>>"%MASTER_LOG%"
+echo.
+echo [CHYBA] Nepodarilo se spustit jako spravce.
+echo Zkus rucne: prave tlacitko na .bat - Spustit jako spravce.
+echo Log: %MASTER_LOG%
+pause
+exit /b 1
 
 :END
 echo ===== RESET END %DATE% %TIME% =====>>"%LOG%"
