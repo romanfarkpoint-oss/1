@@ -4,11 +4,17 @@ setlocal EnableExtensions EnableDelayedExpansion
 set "PSEXEC=P:\Programy\zSkripty\Ostatni\PsExec.exe"
 set "TC_GUID={8F7B99BB-8C5A-4E7B-9D7A-TC0000000001}"
 set "MASTER_LOG=P:\Programy\zSkripty\AHK\Já\log.txt"
+if not exist "P:\Programy\zSkripty\AHK\Já\" set "MASTER_LOG=%ProgramData%\TC_ResetState\log.txt"
+if not exist "%ProgramData%\TC_ResetState" mkdir "%ProgramData%\TC_ResetState" >nul 2>&1
 
 net session >nul 2>&1
 if not "%errorlevel%"=="0" (
   echo [INFO] Spoustim znovu jako spravce...
-  mshta "vbscript:CreateObject(""Shell.Application"").ShellExecute ""cmd.exe"", ""/c """"%~f0"""" --elevated"", """", ""runas"", 1 (close)"
+  echo [INFO] Spoustim znovu jako spravce...>>"%MASTER_LOG%"
+  powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath 'cmd.exe' -ArgumentList '/c ""\"%~f0\" --elevated\"' -Verb RunAs" >nul 2>&1
+  if errorlevel 1 (
+    mshta "vbscript:CreateObject(""Shell.Application"").ShellExecute ""cmd.exe"", ""/c """"%~f0"""" --elevated"", """", ""runas"", 1 (close)"
+  )
   exit /b
 )
 if /i "%~1"=="--elevated" shift
