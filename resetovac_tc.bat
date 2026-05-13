@@ -9,7 +9,7 @@ if not "%errorlevel%"=="0" (
   echo [INFO] Spoustim znovu jako spravce...
   set "ELEVATED_COPY=%ProgramData%\resetovac_tc_elevated.bat"
   copy /y "%~f0" "%ELEVATED_COPY%" >nul
-  powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath 'cmd.exe' -ArgumentList '/c ""%ELEVATED_COPY%"" --elevated' -Verb RunAs"
+  powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath '%ELEVATED_COPY%' -ArgumentList '--elevated' -Verb RunAs"
   exit /b
 )
 if /i "%~1"=="--elevated" shift
