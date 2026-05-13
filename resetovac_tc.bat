@@ -3,8 +3,8 @@ setlocal EnableExtensions EnableDelayedExpansion
 
 set "PSEXEC=P:\Programy\zSkripty\Ostatni\PsExec.exe"
 set "TC_GUID={8F7B99BB-8C5A-4E7B-9D7A-TC0000000001}"
-set "MASTER_LOG=P:\Programy\zSkripty\AHK\Já\log.txt"
-if not exist "P:\Programy\zSkripty\AHK\Já\" set "MASTER_LOG=%ProgramData%\TC_ResetState\log.txt"
+set "MASTER_LOG=P:\Programy\zSkripty\AHK\Ja\log.txt"
+if not exist "P:\Programy\zSkripty\AHK\Ja\" set "MASTER_LOG=%ProgramData%\TC_ResetState\log.txt"
 if not exist "%ProgramData%\TC_ResetState" mkdir "%ProgramData%\TC_ResetState" >nul 2>&1
 if not exist "%MASTER_LOG%" type nul > "%MASTER_LOG%" 2>nul
 
