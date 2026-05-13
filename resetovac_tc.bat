@@ -101,6 +101,7 @@ if "%U%"=="" exit /b
 call :run "rmdir /s /q \"C:\Users\%U%\AppData\Roaming\GHISLER\""
 if /i "%U%"=="%USERNAME%" (
   call :run "reg delete \"HKCU\Software\Microsoft\Active Setup\Installed Components\%TC_GUID%\" /f"
+  call :run "reg add \"HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings\Zones\3\" /v 1806 /t REG_DWORD /d 1 /f"
 )
 exit /b
 
