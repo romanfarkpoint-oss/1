@@ -9,9 +9,11 @@ setlocal EnableExtensions EnableDelayedExpansion
 net session >nul 2>&1
 if not "%errorlevel%"=="0" (
     echo [INFO] Spoustim znovu jako spravce...
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath '%~f0' -Verb RunAs"
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath 'cmd.exe' -ArgumentList '/k ""%~f0" --elevated"' -Verb RunAs"
     exit /b
 )
+
+if /i "%~1"=="--elevated" shift
 
 set "LOG=%~dp0reset_log_%DATE:~-4%%DATE:~3,2%%DATE:~0,2%_%TIME:~0,2%%TIME:~3,2%%TIME:~6,2%.txt"
 set "LOG=%LOG: =0%"
