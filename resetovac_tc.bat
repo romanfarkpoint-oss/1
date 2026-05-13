@@ -1,7 +1,8 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
 
-:: RESET TC + dvouuzivatelsky rezim (R/L)
+set "PSEXEC=P:\Programy\zSkripty\Ostatni\PsExec.exe"
+set "TC_GUID={8F7B99BB-8C5A-4E7B-9D7A-TC0000000001}"
 
 net session >nul 2>&1
 if not "%errorlevel%"=="0" (
@@ -14,7 +15,6 @@ if not "%errorlevel%"=="0" (
 if /i "%~1"=="--elevated" shift
 
 set "CURRENT_USER=%USERNAME%"
-set "CURRENT_USER=%CURRENT_USER: =%"
 set "OTHER_USER="
 if /i "%CURRENT_USER%"=="R" set "OTHER_USER=L"
 if /i "%CURRENT_USER%"=="L" set "OTHER_USER=R"
@@ -23,58 +23,67 @@ set "LOG=%~dp0reset_log_%DATE:~-4%%DATE:~3,2%%DATE:~0,2%_%TIME:~0,2%%TIME:~3,2%%
 set "LOG=%LOG: =0%"
 if not exist "%~dp0" set "LOG=%SystemDrive%\reset_log_fallback.txt"
 
-echo ===== RESET START %DATE% %TIME% ===== > "%LOG%"
-echo [INFO] Aktualni uzivatel: %CURRENT_USER%>>"%LOG%"
-echo [INFO] Druhy uzivatel: %OTHER_USER%>>"%LOG%"
+set "STATE_DIR=%ProgramData%\TC_ResetState"
+if not exist "%STATE_DIR%" mkdir "%STATE_DIR%" >nul 2>&1
+set "STATE_FILE=%STATE_DIR%\done_%OTHER_USER%.flag"
 
-:: SYSTEM cast - jen jednou
-call :run "rmdir /s /q \"C:\ProgramData\TC_ConfigDeploy\""
-call :run "reg delete \"HKLM\Software\Microsoft\Active Setup\Installed Components\{8F7B99BB-8C5A-4E7B-9D7A-TC0000000001}\" /f"
+if /i "%~1"=="--second-phase" goto SECOND_PHASE
 
-:: AKTUALNI uzivatel
+echo ===== RESET START (PHASE1) %DATE% %TIME% ===== > "%LOG%"
+echo [INFO] current=%CURRENT_USER% other=%OTHER_USER%>>"%LOG%"
+
+call :system_cleanup
 call :cleanup_user "%CURRENT_USER%"
 
-:: DRUHY uzivatel - pokus o viditelnou informaci jen jemu
-if defined OTHER_USER (
-  call :find_session "%OTHER_USER%"
-  if defined TARGET_SESSION (
-    msg %OTHER_USER% /time:120 "RESET TC: prihlas se, otevri CMD a spust resetovac_tc.bat. Po dokonceni se odhlas."
-    echo [INFO] Odeslana zprava uzivateli %OTHER_USER% (session !TARGET_SESSION!).>>"%LOG%"
-  ) else (
-    echo [INFO] Uzivatel %OTHER_USER% nema aktivni session.>>"%LOG%"
-  )
+if not exist "%PSEXEC%" (
+  echo [ERR] PsExec nenalezen: %PSEXEC%>>"%LOG%"
+  echo PsExec nenalezen: %PSEXEC%
+  goto END
 )
+
+call :find_session "%OTHER_USER%"
+if not defined TARGET_SESSION (
+  echo [ERR] Druhy uzivatel %OTHER_USER% neni prihlasen.>>"%LOG%"
+  echo Druhy uzivatel %OTHER_USER% neni prihlasen. Prihlas ho a spust script znovu.
+  goto END
+)
+
+del /q "%STATE_FILE%" >nul 2>&1
+
+set "PHASE2_CMD=\"%~f0\" --elevated --second-phase"
+call :run "\"%PSEXEC%\" -accepteula -i !TARGET_SESSION! -h cmd.exe /k %PHASE2_CMD%"
 
 echo.
-echo ==============================================
-echo KROK PRO DRUHEHO UZIVATELE (%OTHER_USER%):
-echo 1) Prepnout na nej.
-echo 2) Spustit tento stejny resetovac_tc.bat (jako spravce).
-echo 3) Po dokonceni ho odhlasit.
-echo 4) Vratit se sem a stisknout ENTER.
-echo ==============================================
-pause
+echo Cekam na dokonceni druheho uzivatele (%OTHER_USER%)...
+:WAIT_SECOND
+if exist "%STATE_FILE%" goto AFTER_SECOND
+timeout /t 2 >nul
+goto WAIT_SECOND
 
-:: Bezpecnost: nikdy neodhlasuj aktualniho uzivatele
-if defined OTHER_USER (
-  call :find_session "%OTHER_USER%"
-  if defined TARGET_SESSION (
-    call :run "logoff !TARGET_SESSION!"
-  ) else (
-    echo [INFO] Druhy uzivatel uz odhlasen nebo nenalezen.>>"%LOG%"
-  )
-)
-
+:AFTER_SECOND
+echo [INFO] Druhy uzivatel dokoncil reset.>>"%LOG%"
+call :run "logoff !TARGET_SESSION!"
 call :clean_temp
 call :run "taskkill /f /im explorer.exe"
 timeout /t 2 >nul
 start explorer.exe
+goto END
 
-echo ===== RESET END %DATE% %TIME% =====>>"%LOG%"
-if exist "%ProgramData%\resetovac_tc_elevated.bat" del /q "%ProgramData%\resetovac_tc_elevated.bat" >nul 2>&1
+:SECOND_PHASE
+set "LOG=%~dp0reset_log_second_%USERNAME%_%DATE:~-4%%DATE:~3,2%%DATE:~0,2%.txt"
+set "LOG=%LOG: =0%"
+echo ===== RESET SECOND USER START %DATE% %TIME% ===== > "%LOG%"
+echo Bezi faze pro druheho uzivatele: %USERNAME%
+call :cleanup_user "%USERNAME%"
+call :clean_temp
+echo [OK] Mazani probehlo. Stiskni ENTER pro ukonceni a navrat na prvniho uzivatele.
+set /p "_done=> "
+>"%ProgramData%\TC_ResetState\done_%USERNAME%.flag" echo done %DATE% %TIME%
+exit /b
 
-echo HOTOVO. Log: %LOG%
-pause
+:system_cleanup
+call :run "rmdir /s /q \"C:\ProgramData\TC_ConfigDeploy\""
+call :run "reg delete \"HKLM\Software\Microsoft\Active Setup\Installed Components\%TC_GUID%\" /f"
 exit /b
 
 :cleanup_user
@@ -82,7 +91,7 @@ set "U=%~1"
 if "%U%"=="" exit /b
 call :run "rmdir /s /q \"C:\Users\%U%\AppData\Roaming\GHISLER\""
 if /i "%U%"=="%USERNAME%" (
-  call :run "reg delete \"HKCU\Software\Microsoft\Active Setup\Installed Components\{8F7B99BB-8C5A-4E7B-9D7A-TC0000000001}\" /f"
+  call :run "reg delete \"HKCU\Software\Microsoft\Active Setup\Installed Components\%TC_GUID%\" /f"
 )
 exit /b
 
@@ -91,7 +100,6 @@ set "TARGET_SESSION="
 for /f "skip=1 tokens=1,3" %%A in ('query user 2^>nul') do (
   if /i "%%A"=="%~1" set "TARGET_SESSION=%%B"
 )
-if defined TARGET_SESSION if "!TARGET_SESSION!"=="Active" set "TARGET_SESSION="
 exit /b
 
 :clean_temp
@@ -110,4 +118,11 @@ set "CMD=%~1"
 echo [CMD] %CMD%>>"%LOG%"
 cmd /c %CMD% >>"%LOG%" 2>&1
 echo [RC ] !errorlevel!>>"%LOG%"
+exit /b
+
+:END
+echo ===== RESET END %DATE% %TIME% =====>>"%LOG%"
+if exist "%ProgramData%\resetovac_tc_elevated.bat" del /q "%ProgramData%\resetovac_tc_elevated.bat" >nul 2>&1
+echo Hotovo. Log: %LOG%
+pause
 exit /b
