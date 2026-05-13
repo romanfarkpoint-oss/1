@@ -1,11 +1,7 @@
 @echo off
 setlocal EnableExtensions
 
-set "REQ_LOG_DIR=P:\Programy\zSkripty\AHK\Já"
-set "LOG_DIR=%ProgramData%\TC_ResetState"
-if exist "%REQ_LOG_DIR%\" (
-  for %%I in ("%REQ_LOG_DIR%") do set "LOG_DIR=%%~fI"
-)
+set "LOG_DIR=C:\log"
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%" >nul 2>&1
 set "LOG=%LOG_DIR%\log.txt"
 
