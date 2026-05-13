@@ -26,6 +26,10 @@ if not "%errorlevel%"=="0" (
         exit /b 1
     )
     >>"%LOG%" echo [INFO] Spoustim znovu jako spravce...
+    echo.
+    echo [INFO] Script bude pokracovat v elevovanem okne.
+    echo [INFO] Stiskni ENTER pro pokracovani...
+    set /p "_go=>"
     powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath $env:ComSpec -ArgumentList '/c ""%~fs0"" --admin' -Verb RunAs" >nul 2>&1
     exit /b
 )
