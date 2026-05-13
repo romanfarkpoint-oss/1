@@ -1,0 +1,180 @@
+RESET / SMAZANI ZAZNAMU - TC, NASTAVENI WINDOWS, 7-ZIP
+========================================================
+
+CIL:
+Aby se skripty chovaly jako by u daneho uzivatele nikdy neprobehly,
+nestaci smazat jen ProgramData. Active Setup si u kazdeho uzivatele uklada
+zaznam do jeho HKCU. Proto je potreba resit:
+
+1) systemovou cast - ProgramData + HKLM Active Setup,
+2) uzivatelskou cast - HKCU Active Setup daneho uzivatele,
+3) volitelne samotne nastaveni v profilu uzivatele.
+
+
+========================================================
+1) TOTAL COMMANDER - SYSTEMOVE SMAZANI JAKO SPRAVCE
+========================================================
+
+Smazat sablonu / deploy slozku:
+
+rmdir /s /q "C:\ProgramData\TC_ConfigDeploy"
+
+Smazat systemovy Active Setup klic:
+
+reg delete "HKLM\Software\Microsoft\Active Setup\Installed Components\{8F7B99BB-8C5A-4E7B-9D7A-TC0000000001}" /f
+
+
+========================================================
+2) TOTAL COMMANDER - SMAZANI U KONKRETNIHO UZIVATELE
+========================================================
+
+Toto spustit pod tim uzivatelem, kteremu to chces vynulovat:
+
+reg delete "HKCU\Software\Microsoft\Active Setup\Installed Components\{8F7B99BB-8C5A-4E7B-9D7A-TC0000000001}" /f
+
+Volitelne smazat i jeho TC konfiguraci:
+
+rmdir /s /q "%APPDATA%\GHISLER"
+
+Pozor: to smaze jeho wincmd.ini, listy, nastaveni TC atd.
+
+
+========================================================
+3) PUvodni NASTAVENI WINDOWS - SYSTEMOVE SMAZANI JAKO SPRAVCE
+========================================================
+
+Pokud jsi pouzival starsi samostatny skript Nastaveni_Windows_Vsichni.cmd:
+
+rmdir /s /q "C:\ProgramData\Win_UserSettingsDeploy"
+
+reg delete "HKLM\Software\Microsoft\Active Setup\Installed Components\{D9C5511D-4C9D-47A3-9E0D-WINSETTINGS01}" /f
+
+
+========================================================
+4) PUvodni NASTAVENI WINDOWS - SMAZANI U KONKRETNIHO UZIVATELE
+========================================================
+
+Toto spustit pod tim uzivatelem:
+
+reg delete "HKCU\Software\Microsoft\Active Setup\Installed Components\{D9C5511D-4C9D-47A3-9E0D-WINSETTINGS01}" /f
+
+Volitelne vratit / odstranit zmeny, ktere skript nastavoval:
+
+reg delete "HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}" /f
+
+reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings\Zones\3" /v 1806 /f
+
+Poznamka:
+Smazani hodnoty 1806 nevraci nutne presne puvodni stav. Jen smaze hodnotu,
+kterou jsme nastavovali kvuli volbe:
+Spousteni aplikaci a neduveryhodnych souboru = Povolit.
+
+
+========================================================
+5) NOVY SLOUCENY SKRIPT WINDOWS + 7-ZIP - SYSTEMOVE SMAZANI JAKO SPRAVCE
+========================================================
+
+Pokud pouzivas novy slouceny skript Nastaveni_Windows_7Zip_Vsichni.cmd:
+
+rmdir /s /q "C:\ProgramData\Win_7Zip_SettingsDeploy"
+
+reg delete "HKLM\Software\Microsoft\Active Setup\Installed Components\{D9C5511D-4C9D-47A3-9E0D-7A1A7C05E7F1}" /f
+
+Volitelne smazat i nainstalovany 7-Zip/helper soubory.
+Pouzij jen tu cestu, ktera na danem PC opravdu existuje:
+
+rmdir /s /q "P:\Programy\7-Zip"
+rmdir /s /q "C:\Program Files\7-Zip"
+rmdir /s /q "C:\Programy\7-Zip"
+rmdir /s /q "C:\7-Zip"
+
+
+========================================================
+6) NOVY SLOUCENY SKRIPT WINDOWS + 7-ZIP - SMAZANI U KONKRETNIHO UZIVATELE
+========================================================
+
+Toto spustit pod tim uzivatelem:
+
+reg delete "HKCU\Software\Microsoft\Active Setup\Installed Components\{D9C5511D-4C9D-47A3-9E0D-7A1A7C05E7F1}" /f
+
+Smazat klasickou kontextovou nabidku Windows 11:
+
+reg delete "HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}" /f
+
+Smazat nastaveni Internet zony 1806:
+
+reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings\Zones\3" /v 1806 /f
+
+Smazat 7-Zip kontextove menu z profilu uzivatele:
+
+reg delete "HKCU\Software\Classes\*\shell\Roman7Zip" /f
+
+reg delete "HKCU\Software\Classes\Directory\shell\Roman7Zip" /f
+
+
+========================================================
+7) STARSI SAMOSTATNY 7-ZIP ACTIVE SETUP - KDYBY BYL POUZITY
+========================================================
+
+Pokud jsi nekdy pouzil samostatny skript pro 7-Zip pro vsechny uzivatele,
+mohl zustat tento deploy a Active Setup:
+
+rmdir /s /q "C:\ProgramData\7Zip_ContextDeploy"
+
+reg delete "HKLM\Software\Microsoft\Active Setup\Installed Components\{41B18C3D-2D6E-4AC7-9C22-7ZIPCTX00001}" /f
+
+A u konkretniho uzivatele:
+
+reg delete "HKCU\Software\Microsoft\Active Setup\Installed Components\{41B18C3D-2D6E-4AC7-9C22-7ZIPCTX00001}" /f
+
+reg delete "HKCU\Software\Classes\*\shell\Roman7Zip" /f
+
+reg delete "HKCU\Software\Classes\Directory\shell\Roman7Zip" /f
+
+
+========================================================
+8) JAK TO VYNUTIT BEZ RUCNIHO MAZANI HKCU U OSTATNICH UZIVATELU
+========================================================
+
+Kdyz nechces lezt do profilu kazdeho uzivatele, nejjednodussi je zvysit verzi
+v prislusnem CMD skriptu.
+
+Priklad:
+
+set "ACTIVE_SETUP_VERSION=1,0,0,1"
+
+zmenit na:
+
+set "ACTIVE_SETUP_VERSION=1,0,0,2"
+
+Windows pak pri dalsim prihlaseni uzivatele pozna, ze HKLM ma novejsi verzi
+nez jeho HKCU, a provede skript znovu.
+
+
+========================================================
+9) RYCHLY PREHLED - CO MAZAT PRO "JAKO POPRVE"
+========================================================
+
+TC:
+- C:\ProgramData\TC_ConfigDeploy
+- HKLM ... {8F7B99BB-8C5A-4E7B-9D7A-TC0000000001}
+- HKCU ... {8F7B99BB-8C5A-4E7B-9D7A-TC0000000001}
+- volitelne %APPDATA%\GHISLER
+
+Windows puvodni:
+- C:\ProgramData\Win_UserSettingsDeploy
+- HKLM ... {D9C5511D-4C9D-47A3-9E0D-WINSETTINGS01}
+- HKCU ... {D9C5511D-4C9D-47A3-9E0D-WINSETTINGS01}
+
+Windows + 7-Zip sloucene:
+- C:\ProgramData\Win_7Zip_SettingsDeploy
+- HKLM ... {D9C5511D-4C9D-47A3-9E0D-7A1A7C05E7F1}
+- HKCU ... {D9C5511D-4C9D-47A3-9E0D-7A1A7C05E7F1}
+- HKCU\Software\Classes\*\shell\Roman7Zip
+- HKCU\Software\Classes\Directory\shell\Roman7Zip
+- HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}
+- HKCU Internet Settings Zones\3 hodnota 1806
+
+Pamatuj:
+HKCU vzdy znamena aktualne prihlaseneho uzivatele.
+Pro jineho uzivatele se musi prihlasit on, nebo musis pouzit HKEY_USERS\SID.
