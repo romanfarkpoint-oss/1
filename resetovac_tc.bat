@@ -4,6 +4,14 @@ setlocal EnableExtensions
 set "LOG_DIR=C:\log"
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%" >nul 2>&1
 set "LOG=%LOG_DIR%\log.txt"
+set "OLD_LOG=C:\ProgramData\TC_ResetState\log.txt"
+
+echo [INFO] Script: %~f0
+echo [INFO] Log: %LOG%
+
+if exist "%OLD_LOG%" (
+    >>"%LOG%" echo [INFO] Detekovan stary log v ProgramData: %OLD_LOG%
+)
 
 >>"%LOG%" echo.
 >>"%LOG%" echo ===== START %DATE% %TIME% =====
