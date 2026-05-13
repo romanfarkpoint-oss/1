@@ -3,6 +3,7 @@ setlocal EnableExtensions EnableDelayedExpansion
 
 set "PSEXEC=P:\Programy\zSkripty\Ostatni\PsExec.exe"
 set "TC_GUID={8F7B99BB-8C5A-4E7B-9D7A-TC0000000001}"
+set "MASTER_LOG=P:\Programy\zSkripty\AHK\Já\log.txt"
 
 net session >nul 2>&1
 if not "%errorlevel%"=="0" (
@@ -29,7 +30,9 @@ set "HAS_ERROR=0"
 if /i "%~1"=="--second-phase" goto SECOND_PHASE
 
 echo ===== RESET START (PHASE1) %DATE% %TIME% ===== > "%LOG%"
+echo ===== RESET START (PHASE1) %DATE% %TIME% =====>>"%MASTER_LOG%"
 echo [INFO] current=%CURRENT_USER% other=%OTHER_USER%>>"%LOG%"
+echo [INFO] current=%CURRENT_USER% other=%OTHER_USER%>>"%MASTER_LOG%"
 
 call :system_cleanup
 call :cleanup_user "%CURRENT_USER%"
@@ -80,6 +83,7 @@ goto END
 set "LOG=%~dp0reset_log_second_%USERNAME%_%DATE:~-4%%DATE:~3,2%%DATE:~0,2%.txt"
 set "LOG=%LOG: =0%"
 echo ===== RESET SECOND USER START %DATE% %TIME% ===== > "%LOG%"
+echo ===== RESET SECOND USER START %DATE% %TIME% =====>>"%MASTER_LOG%"
 echo Bezi faze pro druheho uzivatele: %USERNAME%
 call :cleanup_user "%USERNAME%"
 call :clean_temp
@@ -124,13 +128,17 @@ exit /b
 :run
 set "CMD=%~1"
 echo [CMD] %CMD%>>"%LOG%"
+echo [CMD] %CMD%>>"%MASTER_LOG%"
 cmd /c %CMD% >>"%LOG%" 2>&1
+cmd /c %CMD% >>"%MASTER_LOG%" 2>&1
 echo [RC ] !errorlevel!>>"%LOG%"
+echo [RC ] !errorlevel!>>"%MASTER_LOG%"
 if not "!errorlevel!"=="0" set "HAS_ERROR=1"
 exit /b
 
 :END
 echo ===== RESET END %DATE% %TIME% =====>>"%LOG%"
+echo ===== RESET END %DATE% %TIME% =====>>"%MASTER_LOG%"
 if exist "%ProgramData%\resetovac_tc_elevated.bat" del /q "%ProgramData%\resetovac_tc_elevated.bat" >nul 2>&1
 echo Hotovo. Log: %LOG%
 echo Stiskni ENTER pro ukonceni.
