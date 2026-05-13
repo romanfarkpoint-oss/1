@@ -9,7 +9,7 @@ if not "%errorlevel%"=="0" (
   echo [INFO] Spoustim znovu jako spravce...
   set "ELEVATED_COPY=%ProgramData%\resetovac_tc_elevated.bat"
   copy /y "%~f0" "%ELEVATED_COPY%" >nul
-  powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath 'cmd.exe' -ArgumentList '/k ""%ELEVATED_COPY%"" --elevated' -Verb RunAs"
+  powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath 'cmd.exe' -ArgumentList '/c ""%ELEVATED_COPY%"" --elevated' -Verb RunAs"
   exit /b
 )
 if /i "%~1"=="--elevated" shift
@@ -26,6 +26,7 @@ if not exist "%~dp0" set "LOG=%SystemDrive%\reset_log_fallback.txt"
 set "STATE_DIR=%ProgramData%\TC_ResetState"
 if not exist "%STATE_DIR%" mkdir "%STATE_DIR%" >nul 2>&1
 set "STATE_FILE=%STATE_DIR%\done_%OTHER_USER%.flag"
+set "HAS_ERROR=0"
 
 if /i "%~1"=="--second-phase" goto SECOND_PHASE
 
@@ -51,7 +52,7 @@ if not defined TARGET_SESSION (
 del /q "%STATE_FILE%" >nul 2>&1
 
 set "PHASE2_CMD=\"%~f0\" --elevated --second-phase"
-call :run "\"%PSEXEC%\" -accepteula -i !TARGET_SESSION! -h cmd.exe /k %PHASE2_CMD%"
+call :run "\"%PSEXEC%\" -accepteula -i !TARGET_SESSION! -h cmd.exe /c %PHASE2_CMD%"
 
 echo.
 echo Cekam na dokonceni druheho uzivatele (%OTHER_USER%)...
@@ -67,6 +68,14 @@ call :clean_temp
 call :run "taskkill /f /im explorer.exe"
 timeout /t 2 >nul
 start explorer.exe
+
+if "%HAS_ERROR%"=="0" (
+  echo [VYSLEDEK] Vse probehlo v poradku u obou uzivatelu.
+  echo [RESULT] OK>>"%LOG%"
+) else (
+  echo [VYSLEDEK] Dokonceno s chybami - zkontroluj log: %LOG%
+  echo [RESULT] ERROR>>"%LOG%"
+)
 goto END
 
 :SECOND_PHASE
@@ -118,11 +127,13 @@ set "CMD=%~1"
 echo [CMD] %CMD%>>"%LOG%"
 cmd /c %CMD% >>"%LOG%" 2>&1
 echo [RC ] !errorlevel!>>"%LOG%"
+if not "!errorlevel!"=="0" set "HAS_ERROR=1"
 exit /b
 
 :END
 echo ===== RESET END %DATE% %TIME% =====>>"%LOG%"
 if exist "%ProgramData%\resetovac_tc_elevated.bat" del /q "%ProgramData%\resetovac_tc_elevated.bat" >nul 2>&1
 echo Hotovo. Log: %LOG%
-pause
-exit /b
+echo Stiskni ENTER pro ukonceni.
+set /p "_end=> "
+exit
