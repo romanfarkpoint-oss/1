@@ -11,6 +11,8 @@ echo [INFO] Log: %LOG%
 
 if exist "%OLD_LOG%" (
     >>"%LOG%" echo [INFO] Detekovan stary log v ProgramData: %OLD_LOG%
+    del /f /q "%OLD_LOG%" >nul 2>&1
+    >>"%LOG%" echo [INFO] Stary ProgramData log byl smazan.
 )
 
 >>"%LOG%" echo.
