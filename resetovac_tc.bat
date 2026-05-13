@@ -7,10 +7,7 @@ set "TC_GUID={8F7B99BB-8C5A-4E7B-9D7A-TC0000000001}"
 net session >nul 2>&1
 if not "%errorlevel%"=="0" (
   echo [INFO] Spoustim znovu jako spravce...
-  if not defined ProgramData set "ProgramData=%SystemDrive%\ProgramData"
-  set "ELEVATED_COPY=%ProgramData%\resetovac_tc_elevated.bat"
-  copy /y "%~f0" "%ELEVATED_COPY%" >nul
-  powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath $env:ComSpec -ArgumentList '/c """"%ELEVATED_COPY%"" --elevated""' -Verb RunAs"
+  mshta "vbscript:CreateObject(""Shell.Application"").ShellExecute ""cmd.exe"", ""/c """"%~f0"""" --elevated"", """", ""runas"", 1 (close)"
   exit /b
 )
 if /i "%~1"=="--elevated" shift
