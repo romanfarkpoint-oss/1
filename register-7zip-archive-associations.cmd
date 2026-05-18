@@ -2,6 +2,10 @@
 setlocal enableextensions enabledelayedexpansion
 
 REM Registrace vsech beznych archivnich pripon na 7zFM.exe pomoci SetUserFTA.exe
+REM Podporuje:
+REM  1) cesta predana jako 1. argument skriptu
+REM  2) 7zFM.exe vedle tohoto skriptu
+REM  3) standardni umisteni v Program Files
 
 set "SCRIPT_DIR=%~dp0"
 set "SETUSERFTA=%SCRIPT_DIR%SetUserFTA.exe"
@@ -12,11 +16,33 @@ if not exist "%SETUSERFTA%" (
 )
 
 set "SEVENZIP="
-if exist "%ProgramFiles%\7-Zip\7zFM.exe" set "SEVENZIP=%ProgramFiles%\7-Zip\7zFM.exe"
+
+REM 1) cesta jako argument
+if not "%~1"=="" (
+  set "SEVENZIP=%~1"
+)
+
+REM 2) 7zFM.exe vedle skriptu
+if not defined SEVENZIP if exist "%SCRIPT_DIR%7zFM.exe" set "SEVENZIP=%SCRIPT_DIR%7zFM.exe"
+
+REM 3) standardni cesty instalace
+if not defined SEVENZIP if exist "%ProgramFiles%\7-Zip\7zFM.exe" set "SEVENZIP=%ProgramFiles%\7-Zip\7zFM.exe"
 if not defined SEVENZIP if exist "%ProgramFiles(x86)%\7-Zip\7zFM.exe" set "SEVENZIP=%ProgramFiles(x86)%\7-Zip\7zFM.exe"
+
 if not defined SEVENZIP (
-  echo [CHYBA] Nenalezen 7zFM.exe v Program Files ani Program Files ^(x86^).
-  echo Upravte promennou SEVENZIP ve skriptu rucne.
+  echo [CHYBA] Nenalezen 7zFM.exe.
+  echo.
+  echo Moznosti:
+  echo   1^) Dejte 7zFM.exe vedle tohoto skriptu
+  echo   2^) Spustte skript s cestou k 7zFM.exe, napr.:
+  echo      register-7zip-archive-associations.cmd "D:\Tools\7zip\7zFM.exe"
+  echo   3^) Nainstalujte 7-Zip do Program Files
+  exit /b 1
+)
+
+if not exist "%SEVENZIP%" (
+  echo [CHYBA] Zadana cesta k 7zFM.exe neexistuje:
+  echo %SEVENZIP%
   exit /b 1
 )
 
