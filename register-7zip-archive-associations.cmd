@@ -2,10 +2,7 @@
 setlocal enableextensions enabledelayedexpansion
 
 REM Registrace vsech beznych archivnich pripon na 7zFM.exe pomoci SetUserFTA.exe
-REM Podporuje:
-REM  1) cesta predana jako 1. argument skriptu
-REM  2) 7zFM.exe vedle tohoto skriptu
-REM  3) standardni umisteni v Program Files
+REM Funguje i kdyz mate jen soubory 7zFM.exe/7z.exe/7z.dll z drivejsi instalace.
 
 set "SCRIPT_DIR=%~dp0"
 set "SETUSERFTA=%SCRIPT_DIR%SetUserFTA.exe"
@@ -34,7 +31,6 @@ if not defined SEVENZIP (
   echo   1^) Dejte 7zFM.exe vedle tohoto skriptu
   echo   2^) Spustte skript s cestou k 7zFM.exe, napr.:
   echo      register-7zip-archive-associations.cmd "D:\Tools\7zip\7zFM.exe"
-  echo   3^) Nainstalujte 7-Zip do Program Files
   exit /b 1
 )
 
@@ -49,20 +45,30 @@ set "OK_COUNT=0"
 set "WARN_COUNT=0"
 
 echo [INFO] Pouzivam: %SEVENZIP%
-echo [INFO] Vytvarim ProgID %PROGID% v HKCU...
+echo [INFO] Vytvarim registrace 7zFM a ProgID v HKCU...
 
+REM ProgID + prikaz otevreni
 reg add "HKCU\Software\Classes\%PROGID%" /ve /d "7-Zip Archive" /f >nul
 reg add "HKCU\Software\Classes\%PROGID%\DefaultIcon" /ve /d "\"%SEVENZIP%\",0" /f >nul
 reg add "HKCU\Software\Classes\%PROGID%\shell\open\command" /ve /d "\"%SEVENZIP%\" \"%%1\"" /f >nul
+
+REM Registrace aplikace 7zFM.exe pro OpenWith / shell
+reg add "HKCU\Software\Classes\Applications\7zFM.exe" /v "FriendlyAppName" /d "7-Zip File Manager" /f >nul
+reg add "HKCU\Software\Classes\Applications\7zFM.exe\DefaultIcon" /ve /d "\"%SEVENZIP%\",0" /f >nul
+reg add "HKCU\Software\Classes\Applications\7zFM.exe\shell\open\command" /ve /d "\"%SEVENZIP%\" \"%%1\"" /f >nul
 
 set EXTENSIONS=.7z .zip .rar .tar .gz .bz2 .xz .zst .tgz .tbz .tbz2 .txz .tzst .iso .cab .arj .lzh .lha .wim .swm .esd .vhd .vhdx .vdi .dmg .rpm .deb .cpio .apk .xpi .jar .war .ear .msi .msp
 
 for %%E in (%EXTENSIONS%) do (
   echo [INFO] Nastavuji %%E na %PROGID%
 
-  REM Fallback registrace v HKCU\Software\Classes
+  REM Fallback registrace pripony
   reg add "HKCU\Software\Classes\%%E" /ve /d "%PROGID%" /f >nul
   reg add "HKCU\Software\Classes\%%E\OpenWithProgids" /v "%PROGID%" /t REG_NONE /d "" /f >nul
+
+  REM OpenWithList pomaha, kdyz je 7zFM mimo standardni instalaci
+  reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\%%E\OpenWithList" /v "a" /d "7zFM.exe" /f >nul
+  reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\%%E\OpenWithProgids" /v "%PROGID%" /t REG_NONE /d "" /f >nul
 
   "%SETUSERFTA%" %%E %PROGID%
   if errorlevel 1 (
@@ -79,6 +85,5 @@ if not "!WARN_COUNT!"=="0" (
   echo [POZN] Pokud dvojklik stale nefunguje, restartujte Explorer nebo se odhlaste/prihlaste.
 )
 
-echo [HOTOVO] Archivni pripony byly namapovany na 7zFM.exe.
-echo Projevi se pri dvojkliku v Pruzkumniku/na plose pro aktualniho uzivatele.
+echo [HOTOVO] Archivni pripony byly namapovany na 7zFM.exe pro aktualniho uzivatele.
 exit /b 0
