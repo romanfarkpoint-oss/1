@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Obálka, klíč a červené S</title>
+  <desc id="desc">Ikona kombinuje poštovní obálku, šedozlatý klíč ve stylu Windows shellu a výrazné červené ručně kreslené S.</desc>
+  <defs>
+    <linearGradient id="envelopeBody" x1="48" y1="76" x2="205" y2="190" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff8df"/>
+      <stop offset="0.55" stop-color="#ffe08a"/>
+      <stop offset="1" stop-color="#f6b945"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="53" y1="58" x2="188" y2="166" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#f0f3f7"/>
+    </linearGradient>
+    <linearGradient id="keyMetal" x1="104" y1="50" x2="169" y2="112" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#e7edf2"/>
+      <stop offset="0.45" stop-color="#aeb8c2"/>
+      <stop offset="1" stop-color="#687580"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="#000000" flood-opacity="0.22"/>
+    </filter>
+  </defs>
+
+  <path d="M39 190 C72 173 95 150 88 130 C82 112 50 108 48 91 C45 64 109 54 159 34" fill="none" stroke="#d90000" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M37 194 C72 183 107 172 145 166" fill="none" stroke="#d90000" stroke-width="7" stroke-linecap="round"/>
+
+  <g filter="url(#softShadow)">
+    <rect x="47" y="73" width="154" height="109" rx="16" fill="url(#envelopeBody)" stroke="#c78d2c" stroke-width="5"/>
+    <path d="M58 81 L124 135 L190 81" fill="url(#paper)" stroke="#d6dbe0" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M55 174 L103 126" fill="none" stroke="#cf9a3a" stroke-width="5" stroke-linecap="round"/>
+    <path d="M194 174 L145 126" fill="none" stroke="#cf9a3a" stroke-width="5" stroke-linecap="round"/>
+    <path d="M58 176 L113 124 C120 118 128 118 135 124 L190 176" fill="#ffd36a" stroke="#c78d2c" stroke-width="5" stroke-linejoin="round"/>
+  </g>
+
+  <g transform="rotate(-36 142 90)" filter="url(#softShadow)">
+    <circle cx="103" cy="86" r="25" fill="url(#keyMetal)" stroke="#66717a" stroke-width="4"/>
+    <circle cx="103" cy="86" r="12" fill="#fff8df" stroke="#89949e" stroke-width="4"/>
+    <rect x="126" y="78" width="72" height="16" rx="7" fill="#d9a034" stroke="#99670f" stroke-width="4"/>
+    <rect x="178" y="91" width="14" height="24" rx="3" fill="#d9a034" stroke="#99670f" stroke-width="4"/>
+    <rect x="194" y="91" width="13" height="18" rx="3" fill="#d9a034" stroke="#99670f" stroke-width="4"/>
+    <circle cx="95" cy="78" r="7" fill="#f8fbff" opacity="0.55"/>
+  </g>
+</svg>
