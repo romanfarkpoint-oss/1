@@ -352,9 +352,8 @@ RunVlcPlaylistMode(selectedFile) {
 
     StartVlcWithPlaylist(playlistPath, selectedDir, httpPort, httpPassword)
 
-    ; Playlist ve VLC startuje bez autostartu, aby se na par vterin nespustila
-    ; prvni polozka. Prehravani se spusti az tady pres HTTP primo na kliknute
-    ; polozce; pro prvni polozku je to take potreba, protoze autostart je vypnuty.
+    ; VLC playlist se nacita s autostartem, ale pausnute. Tim se vyhneme prazdnemu
+    ; VLC i prehravani prvni polozky; nasledne se pres HTTP spusti kliknuta polozka.
     if SwitchVlcToSelectedFile(httpPort, httpPassword, selectedFile, startIndex, files.Length, HTTP_TIMEOUT_MS) {
         Log("VLC spusteno/prepnuto na vybrany soubor pri zachovanem poradi playlistu.")
     } else {
@@ -651,7 +650,8 @@ StartVlcWithPlaylist(playlistPath, workingDir, httpPort, httpPassword) {
     commandLine := Quote(vlcPath)
         . " --no-one-instance"
         . " --started-from-file"
-        . " --no-playlist-autostart"
+        . " --playlist-autostart"
+        . " --start-paused"
         . " --no-qt-error-dialogs"
         . " --no-interact"
         . " --quiet"
@@ -1462,14 +1462,16 @@ StartWinampWithPlaylist(playlist, startIndex := 1, expectedItemCount := 0) {
         ExitApp(31)
     }
 
-    SelectWinampPlaylistItem(startIndex, expectedItemCount)
+    if (startIndex > 1) {
+        SelectWinampPlaylistItem(startIndex, expectedItemCount)
+    }
 }
 
 SelectWinampPlaylistItem(startIndex, expectedItemCount := 0) {
     targetPos := startIndex - 1
     deadline := A_TickCount + 15000
     hwnd := 0
-    lastCommandTick := 0
+    commandSent := false
 
     while (A_TickCount < deadline) {
         try hwnd := WinExist("ahk_class Winamp v1.x")
@@ -1485,16 +1487,12 @@ SelectWinampPlaylistItem(startIndex, expectedItemCount := 0) {
                 listLength := SendMessage(0x400, 0, 124, , "ahk_id " hwnd)
                 playlistReady := (expectedItemCount <= 0 || listLength >= expectedItemCount)
 
-                if playlistReady && ((A_TickCount - lastCommandTick) >= 500) {
+                if playlistReady && !commandSent {
                     SendMessage(0x400, targetPos, 121, , "ahk_id " hwnd)
                     Sleep(150)
                     SendMessage(0x400, 0, 102, , "ahk_id " hwnd)
-                    lastCommandTick := A_TickCount
-                }
-
-                currentPos := SendMessage(0x400, 0, 125, , "ahk_id " hwnd)
-                if (playlistReady && currentPos = targetPos) {
-                    Log("Winamp prepnut na pozici playlistu: " startIndex " / " expectedItemCount)
+                    commandSent := true
+                    Log("Winamp prikaz k prepnuti na pozici playlistu odeslan: " startIndex " / " expectedItemCount)
                     return true
                 }
             } catch as e {

@@ -275,11 +275,26 @@ if errorlevel 1 (
   exit /b 1
 )
 call :Log "[INFO] RegisterIrfanProgId hotovo, frontuji obrazove pripony."
-for %%E in (.3fr .ai .ani .apng .arw .avif .bay .bmp .bmq .cal .cin .clip .cpt .cr2 .cr3 .crw .cur .dc2 .dcr .dcx .dds .dib .dng .dpx .emf .eps .erf .exif .exr .fff .fits .flif .fpx .gif .hdr) do call :QueueOne %%E %IRFAN_FTA_PROGID%
-for %%E in (.heic .heif .icb .icns .ico .iiq .j2c .j2k .jas .jb2 .jbig .jbig2 .jfi .jfif .jif .jng .jp2 .jpc .jpe .jpeg .jpf .jpg .jpm .jps .jpx .jxl .k25 .kdc .lbm .mef .miff .mos .mrw .nef .nrw) do call :QueueOne %%E %IRFAN_FTA_PROGID%
-for %%E in (.ora .orf .pam .pbm .pcd .pcx .pef .pfm .pgm .pic .pict .png .pnm .ppm .psb .psd .psp .pspimage .ptx .pxn .qoi .raf .ras .raw .rgb .rgba .rle .rw2 .rwl .sgi .sr2 .srf .srw .svg .svgz) do call :QueueOne %%E %IRFAN_FTA_PROGID%
-for %%E in (.tga .tif .tiff .vda .vst .wbmp .webp .wmf .x3f .xbm .xcf .xpm) do call :QueueOne %%E %IRFAN_FTA_PROGID%
+for %%E in (.3fr .ai .ani .apng .arw .avif .bay .bmp .bmq .cal .cin .clip .cpt .cr2 .cr3 .crw .cur .dc2 .dcr .dcx .dds .dib .dng .dpx .emf .eps .erf .exif .exr .fff .fits .flif .fpx .gif .hdr) do call :QueueIrfanImage %%E
+for %%E in (.heic .heif .icb .icns .ico .iiq .j2c .j2k .jas .jb2 .jbig .jbig2 .jfi .jfif .jif .jng .jp2 .jpc .jpe .jpeg .jpf .jpg .jpm .jps .jpx .jxl .k25 .kdc .lbm .mef .miff .mos .mrw .nef .nrw) do call :QueueIrfanImage %%E
+for %%E in (.ora .orf .pam .pbm .pcd .pcx .pef .pfm .pgm .pic .pict .png .pnm .ppm .psb .psd .psp .pspimage .ptx .pxn .qoi .raf .ras .raw .rgb .rgba .rle .rw2 .rwl .sgi .sr2 .srf .srw .svg .svgz) do call :QueueIrfanImage %%E
+for %%E in (.tga .tif .tiff .vda .vst .wbmp .webp .wmf .x3f .xbm .xcf .xpm) do call :QueueIrfanImage %%E
 call :Log "[INFO] Obrazove asociace pripraveny. Celkem zatim: !EXT_COUNT!"
+exit /b 0
+
+
+:QueueIrfanImage
+set "IMG_EXT=%~1"
+set "IMG_KEY=%IMG_EXT:.=%"
+set "IMG_PROGID=IrfanView.%IMG_KEY%"
+if /i "%IMG_EXT%"==".jpeg" set "IMG_PROGID=IrfanView.jpg"
+if /i "%IMG_EXT%"==".jpe" set "IMG_PROGID=IrfanView.jpg"
+if /i "%IMG_EXT%"==".jfif" set "IMG_PROGID=IrfanView.jpg"
+if /i "%IMG_EXT%"==".tiff" set "IMG_PROGID=IrfanView.tif"
+reg add "HKCU\Software\Classes\%IMG_PROGID%" /ve /d "IrfanView Image" /f >nul
+reg add "HKCU\Software\Classes\%IMG_PROGID%\DefaultIcon" /ve /d "\"%IRFANVIEW%\",0" /f >nul
+reg add "HKCU\Software\Classes\%IMG_PROGID%\shell\open\command" /ve /d "\"%IRFANVIEW%\" \"%%1\"" /f >nul
+call :QueueOne %IMG_EXT% %IMG_PROGID%
 exit /b 0
 
 :QueueOne
