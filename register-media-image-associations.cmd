@@ -16,6 +16,7 @@ set "IRFAN_PROGID=Roman.IrfanView.Image"
 
 set "LOG_DIR=C:\logy"
 set "LOG_FILE=%LOG_DIR%\fta.txt"
+set "SETUSERFTA_EXIT=0"
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%" >nul 2>nul
 >>"%LOG_FILE%" echo.
 >>"%LOG_FILE%" echo ============================================================
@@ -31,7 +32,8 @@ if not exist "%SETUSERFTA%" (
   exit /b 1
 )
 
-call :EnsureWmic || exit /b 1
+call :EnsureWmic
+if errorlevel 1 exit /b 1
 call :Log "WMIC kontrola OK."
 
 call :FindAutoHotkey
@@ -111,6 +113,10 @@ set "OK_COUNT=0"
 set "WARN_COUNT=0"
 call :ApplyQueuedAssociations
 set "SETUSERFTA_EXIT=%ERRORLEVEL%"
+if not defined SETUSERFTA_EXIT (
+  call :Log "[CHYBA] Interni chyba: SETUSERFTA_EXIT neni nastaven."
+  goto FAIL
+)
 call :Log "SetUserFTA souhrn: OK=!OK_COUNT!, chyby=!WARN_COUNT!, exit=%SETUSERFTA_EXIT%"
 call :VerifySampleAssociations
 if not "%SETUSERFTA_EXIT%"=="0" (
