@@ -14,27 +14,42 @@ set "VLC_PROGID=Roman.MediaPlaylist.VLC"
 set "WINAMP_PROGID=Roman.MediaPlaylist.Winamp"
 set "IRFAN_PROGID=Roman.IrfanView.Image"
 
+set "LOG_DIR=C:\logy"
+set "LOG_FILE=%LOG_DIR%\fta.txt"
+if not exist "%LOG_DIR%" mkdir "%LOG_DIR%" >nul 2>nul
+>>"%LOG_FILE%" echo.
+>>"%LOG_FILE%" echo ============================================================
+>>"%LOG_FILE%" echo START %DATE% %TIME% register-media-image-associations.cmd
+>>"%LOG_FILE%" echo SETUSERFTA=%SETUSERFTA%
+>>"%LOG_FILE%" echo MEDIA_AHK=%MEDIA_AHK%
+>>"%LOG_FILE%" echo IRFANVIEW=%IRFANVIEW%
+call :Log "Log soubor: %LOG_FILE%"
+
 if not exist "%SETUSERFTA%" (
-  echo [CHYBA] Nenalezen %SETUSERFTA%
+  call :Log "[CHYBA] Nenalezen %SETUSERFTA%"
   call :WaitBeforeExit
   exit /b 1
 )
 
 call :EnsureWmic || exit /b 1
+call :Log "WMIC kontrola OK."
 
 call :FindAutoHotkey
 if not defined AHK_EXE (
-  echo [CHYBA] Nenalezen AutoHotkey v2 executable.
+  call :Log "[CHYBA] Nenalezen AutoHotkey v2 executable."
   echo        Nainstalujte AutoHotkey nebo upravte promennou AHK_EXE ve skriptu.
+  >>"%LOG_FILE%" echo        Nainstalujte AutoHotkey nebo upravte promennou AHK_EXE ve skriptu.
   call :WaitBeforeExit
   exit /b 1
 )
+call :Log "AutoHotkey nalezen: %AHK_EXE%"
 
 if not exist "%MEDIA_AHK%" (
-  echo [CHYBA] Nenalezen media skript: %MEDIA_AHK%
+  call :Log "[CHYBA] Nenalezen media skript: %MEDIA_AHK%"
   call :WaitBeforeExit
   exit /b 1
 )
+call :Log "Media skript nalezen."
 
 :MENU
 echo.
@@ -45,6 +60,7 @@ echo   3^) Winamp + VLC
 echo.
 choice /c 123 /n /m "Volba [1-3]: "
 set "CHOICE_CODE=%ERRORLEVEL%"
+call :Log "Zvolena moznost: %CHOICE_CODE%"
 echo.
 
 set "OK_COUNT=0"
@@ -54,10 +70,10 @@ set "CONFIG_FILE=%TEMP%\SetUserFTA_media_image_%RANDOM%%RANDOM%.txt"
 set "AUTO_CONFIRM_STOP=%TEMP%\SetUserFTA_auto_confirm_%RANDOM%%RANDOM%.stop"
 set "AUTO_CONFIRM_PS1=%TEMP%\SetUserFTA_auto_confirm_%RANDOM%%RANDOM%.ps1"
 
+call :Log "Docasny konfiguracni soubor: %CONFIG_FILE%"
 type nul > "%CONFIG_FILE%"
 if errorlevel 1 (
-  echo [CHYBA] Nelze vytvorit docasny konfiguracni soubor:
-  echo        %CONFIG_FILE%
+  call :Log "[CHYBA] Nelze vytvorit docasny konfiguracni soubor: %CONFIG_FILE%"
   call :WaitBeforeExit
   exit /b 1
 )
@@ -75,22 +91,24 @@ if "%CHOICE_CODE%"=="1" (
 )
 
 if "%EXT_COUNT%"=="0" (
-  echo [CHYBA] Nebyla pripravena zadna asociace.
+  call :Log "[CHYBA] Nebyla pripravena zadna asociace."
   call :CleanupTempFiles
   call :WaitBeforeExit
   exit /b 1
 )
 
 echo.
-echo [INFO] Spoustim SetUserFTA jednou nad konfiguracnim souborem:
-echo        %CONFIG_FILE%
+call :Log "[INFO] Spoustim SetUserFTA jednou nad konfiguracnim souborem: %CONFIG_FILE%"
 call :StartSetUserFtaAutoConfirm
-(echo Y& echo A& echo.) | "%SETUSERFTA%" "%CONFIG_FILE%"
+>>"%LOG_FILE%" echo ----- SetUserFTA output start -----
+(echo Y& echo A& echo.) | "%SETUSERFTA%" "%CONFIG_FILE%" >>"%LOG_FILE%" 2>&1
 set "SETUSERFTA_EXIT=%ERRORLEVEL%"
+>>"%LOG_FILE%" echo ----- SetUserFTA output end, exit=%SETUSERFTA_EXIT% -----
 call :StopSetUserFtaAutoConfirm
+call :Log "SetUserFTA exit code: %SETUSERFTA_EXIT%"
 if not "%SETUSERFTA_EXIT%"=="0" (
-  echo [CHYBA] SetUserFTA selhalo pri importu konfigurace.
-  echo [POZN] HKCU fallback zaznamy byly vytvoreny, ale Windows UserChoice se nemusel zmenit.
+  call :Log "[CHYBA] SetUserFTA selhalo pri importu konfigurace."
+  call :Log "[POZN] HKCU fallback zaznamy byly vytvoreny, ale Windows UserChoice se nemusel zmenit."
   call :CleanupTempFiles
   call :WaitBeforeExit
   exit /b 1
@@ -101,16 +119,22 @@ if not "%SETUSERFTA_EXIT%"=="0" (
 call :CleanupTempFiles
 
 echo.
-echo [HOTOVO] Pripraveno asociaci: !EXT_COUNT!, SetUserFTA uspesne: !OK_COUNT!, varovani: !WARN_COUNT!
-echo [POZN] Pokud se zmena hned neprojevi, restartujte Explorer nebo se odhlaste/prihlaste.
+call :Log "[HOTOVO] Pripraveno asociaci: !EXT_COUNT!, SetUserFTA uspesne: !OK_COUNT!, varovani: !WARN_COUNT!"
+call :Log "[POZN] Pokud se zmena hned neprojevi, restartujte Explorer nebo se odhlaste/prihlaste."
 call :WaitBeforeExit
 exit /b 0
 
 :FAIL
+call :Log "[CHYBA] Skript skoncil pres FAIL vetvu."
 call :StopSetUserFtaAutoConfirm
 call :CleanupTempFiles
 call :WaitBeforeExit
 exit /b 1
+
+:Log
+echo %~1
+>>"%LOG_FILE%" echo [%DATE% %TIME%] %~1
+exit /b 0
 
 :WaitBeforeExit
 echo.
@@ -122,6 +146,7 @@ exit /b 0
 REM SetUserFTA muze zobrazit potvrzovaci okno. Watcher po dobu behu zkousi
 REM aktivovat okno SetUserFTA a poslat Enter/mezernik; konzolove dotazy se
 REM zaroven potvrzuji pres stdin u samotneho volani SetUserFTA.
+call :Log "Start auto-confirm watcheru pro SetUserFTA."
 del "%AUTO_CONFIRM_STOP%" >nul 2>nul
 >"%AUTO_CONFIRM_PS1%" echo param([string]$StopFile)
 >>"%AUTO_CONFIRM_PS1%" echo Add-Type -AssemblyName Microsoft.VisualBasic
@@ -146,6 +171,7 @@ if defined AUTO_CONFIRM_STOP type nul > "%AUTO_CONFIRM_STOP%" 2>nul
 exit /b 0
 
 :CleanupTempFiles
+>>"%LOG_FILE%" echo [%DATE% %TIME%] Cleanup temp files.
 del "%CONFIG_FILE%" >nul 2>nul
 del "%AUTO_CONFIRM_STOP%" >nul 2>nul
 del "%AUTO_CONFIRM_PS1%" >nul 2>nul
@@ -156,14 +182,14 @@ where wmic.exe >nul 2>nul
 if not errorlevel 1 exit /b 0
 if exist "%SystemRoot%\System32\wbem\wmic.exe" exit /b 0
 
-echo [CHYBA] WMIC neni v tomto Windows nainstalovany nebo neni v PATH.
+call :Log "[CHYBA] WMIC neni v tomto Windows nainstalovany nebo neni v PATH."
 echo.
-echo SetUserFTA Personal Edition bez WMIC vypisuje opakovane varovani a asociace nenastavi spolehlive.
-echo Nejspis staci otevrit PowerShell jako spravce a spustit:
+call :Log "SetUserFTA Personal Edition bez WMIC vypisuje opakovane varovani a asociace nenastavi spolehlive."
+call :Log "Nejspis staci otevrit PowerShell jako spravce a spustit:"
 echo.
-echo   add-WindowsCapability -online -name WMIC
+call :Log "  add-WindowsCapability -online -name WMIC"
 echo.
-echo Potom restartujte Windows a spustte tento skript znovu.
+call :Log "Potom restartujte Windows a spustte tento skript znovu."
 call :WaitBeforeExit
 exit /b 1
 
@@ -176,7 +202,7 @@ if not defined AHK_EXE if exist "%ProgramFiles(x86)%\AutoHotkey\AutoHotkey64.exe
 exit /b 0
 
 :RegisterProgIds
-echo [INFO] Vytvarim ProgID v HKCU...
+call :Log "[INFO] Vytvarim ProgID v HKCU..."
 reg add "HKCU\Software\Classes\%VLC_PROGID%" /ve /d "Media Playlist - VLC" /f >nul
 reg add "HKCU\Software\Classes\%VLC_PROGID%\shell\open\command" /ve /d "\"%AHK_EXE%\" \"%MEDIA_AHK%\" --vlc \"%%1\"" /f >nul
 reg add "HKCU\Software\Classes\%WINAMP_PROGID%" /ve /d "Media Playlist - Winamp" /f >nul
@@ -185,7 +211,7 @@ exit /b 0
 
 :RegisterIrfanProgId
 if not exist "%IRFANVIEW%" (
-  echo [CHYBA] Nenalezen IrfanView: %IRFANVIEW%
+  call :Log "[CHYBA] Nenalezen IrfanView: %IRFANVIEW%"
   exit /b 1
 )
 reg add "HKCU\Software\Classes\%IRFAN_PROGID%" /ve /d "IrfanView Image" /f >nul
@@ -199,14 +225,14 @@ set EXTENSIONS=.264 .265 .3g2 .3gp .3gp2 .3gpp .amv .asf .avi .av1 .avc .avs .bi
 for %%E in (%EXTENSIONS%) do call :QueueOne %%E %VLC_PROGID%
 set EXTENSIONS=.aac .ac3 .adt .adts .aif .aifc .aiff .au .cda .m4a .m4b .mp1 .mp2 .mp3 .mpa .ogg .pls .wav .wave
 for %%E in (%EXTENSIONS%) do call :QueueOne %%E %WINAMP_PROGID%
-echo [INFO] Media asociace pripraveny. Celkem zatim: !EXT_COUNT!
+call :Log "[INFO] Media asociace pripraveny. Celkem zatim: !EXT_COUNT!"
 exit /b 0
 
 :RegisterImages
 call :RegisterIrfanProgId || exit /b 1
 set EXTENSIONS=.3fr .ai .ani .apng .arw .avif .bay .bmp .bmq .cal .cin .clip .cpt .cr2 .cr3 .crw .cur .dc2 .dcr .dcx .dds .dib .dng .dpx .emf .eps .erf .exif .exr .fff .fits .flif .fpx .gif .hdr .heic .heif .icb .icns .ico .iiq .j2c .j2k .jas .jb2 .jbig .jbig2 .jfi .jfif .jif .jng .jp2 .jpc .jpe .jpeg .jpf .jpg .jpm .jps .jpx .jxl .k25 .kdc .lbm .mef .miff .mos .mrw .nef .nrw .ora .orf .pam .pbm .pcd .pcx .pef .pfm .pgm .pic .pict .png .pnm .ppm .psb .psd .psp .pspimage .ptx .pxn .qoi .raf .ras .raw .rgb .rgba .rle .rw2 .rwl .sgi .sr2 .srf .srw .svg .svgz .tga .tif .tiff .vda .vst .wbmp .webp .wmf .x3f .xbm .xcf .xpm
 for %%E in (%EXTENSIONS%) do call :QueueOne %%E %IRFAN_PROGID%
-echo [INFO] Obrazove asociace pripraveny. Celkem zatim: !EXT_COUNT!
+call :Log "[INFO] Obrazove asociace pripraveny. Celkem zatim: !EXT_COUNT!"
 exit /b 0
 
 :QueueOne
