@@ -16,6 +16,7 @@ set "IRFAN_PROGID=Roman.IrfanView.Image"
 
 if not exist "%SETUSERFTA%" (
   echo [CHYBA] Nenalezen %SETUSERFTA%
+  call :WaitBeforeExit
   exit /b 1
 )
 
@@ -25,11 +26,13 @@ call :FindAutoHotkey
 if not defined AHK_EXE (
   echo [CHYBA] Nenalezen AutoHotkey v2 executable.
   echo        Nainstalujte AutoHotkey nebo upravte promennou AHK_EXE ve skriptu.
+  call :WaitBeforeExit
   exit /b 1
 )
 
 if not exist "%MEDIA_AHK%" (
   echo [CHYBA] Nenalezen media skript: %MEDIA_AHK%
+  call :WaitBeforeExit
   exit /b 1
 )
 
@@ -55,6 +58,7 @@ type nul > "%CONFIG_FILE%"
 if errorlevel 1 (
   echo [CHYBA] Nelze vytvorit docasny konfiguracni soubor:
   echo        %CONFIG_FILE%
+  call :WaitBeforeExit
   exit /b 1
 )
 
@@ -73,6 +77,7 @@ if "%CHOICE_CODE%"=="1" (
 if "%EXT_COUNT%"=="0" (
   echo [CHYBA] Nebyla pripravena zadna asociace.
   call :CleanupTempFiles
+  call :WaitBeforeExit
   exit /b 1
 )
 
@@ -87,6 +92,7 @@ if not "%SETUSERFTA_EXIT%"=="0" (
   echo [CHYBA] SetUserFTA selhalo pri importu konfigurace.
   echo [POZN] HKCU fallback zaznamy byly vytvoreny, ale Windows UserChoice se nemusel zmenit.
   call :CleanupTempFiles
+  call :WaitBeforeExit
   exit /b 1
 ) else (
   set "OK_COUNT=%EXT_COUNT%"
@@ -97,12 +103,20 @@ call :CleanupTempFiles
 echo.
 echo [HOTOVO] Pripraveno asociaci: !EXT_COUNT!, SetUserFTA uspesne: !OK_COUNT!, varovani: !WARN_COUNT!
 echo [POZN] Pokud se zmena hned neprojevi, restartujte Explorer nebo se odhlaste/prihlaste.
+call :WaitBeforeExit
 exit /b 0
 
 :FAIL
 call :StopSetUserFtaAutoConfirm
 call :CleanupTempFiles
+call :WaitBeforeExit
 exit /b 1
+
+:WaitBeforeExit
+echo.
+echo Stisknete libovolnou klavesu pro zavreni okna...
+pause >nul
+exit /b 0
 
 :StartSetUserFtaAutoConfirm
 REM SetUserFTA muze zobrazit potvrzovaci okno. Watcher po dobu behu zkousi
@@ -150,6 +164,7 @@ echo.
 echo   add-WindowsCapability -online -name WMIC
 echo.
 echo Potom restartujte Windows a spustte tento skript znovu.
+call :WaitBeforeExit
 exit /b 1
 
 :FindAutoHotkey
@@ -184,18 +199,20 @@ set EXTENSIONS=.264 .265 .3g2 .3gp .3gp2 .3gpp .amv .asf .avi .av1 .avc .avs .bi
 for %%E in (%EXTENSIONS%) do call :QueueOne %%E %VLC_PROGID%
 set EXTENSIONS=.aac .ac3 .adt .adts .aif .aifc .aiff .au .cda .m4a .m4b .mp1 .mp2 .mp3 .mpa .ogg .pls .wav .wave
 for %%E in (%EXTENSIONS%) do call :QueueOne %%E %WINAMP_PROGID%
+echo [INFO] Media asociace pripraveny. Celkem zatim: !EXT_COUNT!
 exit /b 0
 
 :RegisterImages
 call :RegisterIrfanProgId || exit /b 1
 set EXTENSIONS=.3fr .ai .ani .apng .arw .avif .bay .bmp .bmq .cal .cin .clip .cpt .cr2 .cr3 .crw .cur .dc2 .dcr .dcx .dds .dib .dng .dpx .emf .eps .erf .exif .exr .fff .fits .flif .fpx .gif .hdr .heic .heif .icb .icns .ico .iiq .j2c .j2k .jas .jb2 .jbig .jbig2 .jfi .jfif .jif .jng .jp2 .jpc .jpe .jpeg .jpf .jpg .jpm .jps .jpx .jxl .k25 .kdc .lbm .mef .miff .mos .mrw .nef .nrw .ora .orf .pam .pbm .pcd .pcx .pef .pfm .pgm .pic .pict .png .pnm .ppm .psb .psd .psp .pspimage .ptx .pxn .qoi .raf .ras .raw .rgb .rgba .rle .rw2 .rwl .sgi .sr2 .srf .srw .svg .svgz .tga .tif .tiff .vda .vst .wbmp .webp .wmf .x3f .xbm .xcf .xpm
 for %%E in (%EXTENSIONS%) do call :QueueOne %%E %IRFAN_PROGID%
+echo [INFO] Obrazove asociace pripraveny. Celkem zatim: !EXT_COUNT!
 exit /b 0
 
 :QueueOne
 set "EXT=%~1"
 set "PROGID=%~2"
-echo [INFO] Pripravuji %EXT% -^> %PROGID%
+REM Tichy rezim: nevypisujeme kazdou priponu zvlast, jen souhrn na konci.
 reg add "HKCU\Software\Classes\%EXT%" /ve /d "%PROGID%" /f >nul
 reg add "HKCU\Software\Classes\%EXT%\OpenWithProgids" /v "%PROGID%" /t REG_NONE /d "" /f >nul
 >>"%CONFIG_FILE%" echo %EXT%, %PROGID%
