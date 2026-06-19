@@ -13,6 +13,7 @@ set "IRFANVIEW=P:\Programy\IrfanView\i_view64.exe"
 set "VLC_PROGID=Roman.MediaPlaylist.VLC"
 set "WINAMP_PROGID=Roman.MediaPlaylist.Winamp"
 set "IRFAN_PROGID=Roman.IrfanView.Image"
+set "IRFAN_FTA_PROGID=Applications\i_view64.exe"
 
 set "LOG_DIR=C:\logy"
 set "LOG_FILE=%LOG_DIR%\fta.txt"
@@ -248,6 +249,9 @@ call :Log "IrfanView nalezen: %IRFANVIEW%"
 reg add "HKCU\Software\Classes\%IRFAN_PROGID%" /ve /d "IrfanView Image" /f >nul
 reg add "HKCU\Software\Classes\%IRFAN_PROGID%\DefaultIcon" /ve /d "\"%IRFANVIEW%\",0" /f >nul
 reg add "HKCU\Software\Classes\%IRFAN_PROGID%\shell\open\command" /ve /d "\"%IRFANVIEW%\" \"%%1\"" /f >nul
+reg add "HKCU\Software\Classes\Applications\i_view64.exe" /v "FriendlyAppName" /d "IrfanView" /f >nul
+reg add "HKCU\Software\Classes\Applications\i_view64.exe\DefaultIcon" /ve /d "\"%IRFANVIEW%\",0" /f >nul
+reg add "HKCU\Software\Classes\Applications\i_view64.exe\shell\open\command" /ve /d "\"%IRFANVIEW%\" \"%%1\"" /f >nul
 exit /b 0
 
 :RegisterMedia
@@ -271,10 +275,10 @@ if errorlevel 1 (
   exit /b 1
 )
 call :Log "[INFO] RegisterIrfanProgId hotovo, frontuji obrazove pripony."
-for %%E in (.3fr .ai .ani .apng .arw .avif .bay .bmp .bmq .cal .cin .clip .cpt .cr2 .cr3 .crw .cur .dc2 .dcr .dcx .dds .dib .dng .dpx .emf .eps .erf .exif .exr .fff .fits .flif .fpx .gif .hdr) do call :QueueOne %%E %IRFAN_PROGID%
-for %%E in (.heic .heif .icb .icns .ico .iiq .j2c .j2k .jas .jb2 .jbig .jbig2 .jfi .jfif .jif .jng .jp2 .jpc .jpe .jpeg .jpf .jpg .jpm .jps .jpx .jxl .k25 .kdc .lbm .mef .miff .mos .mrw .nef .nrw) do call :QueueOne %%E %IRFAN_PROGID%
-for %%E in (.ora .orf .pam .pbm .pcd .pcx .pef .pfm .pgm .pic .pict .png .pnm .ppm .psb .psd .psp .pspimage .ptx .pxn .qoi .raf .ras .raw .rgb .rgba .rle .rw2 .rwl .sgi .sr2 .srf .srw .svg .svgz) do call :QueueOne %%E %IRFAN_PROGID%
-for %%E in (.tga .tif .tiff .vda .vst .wbmp .webp .wmf .x3f .xbm .xcf .xpm) do call :QueueOne %%E %IRFAN_PROGID%
+for %%E in (.3fr .ai .ani .apng .arw .avif .bay .bmp .bmq .cal .cin .clip .cpt .cr2 .cr3 .crw .cur .dc2 .dcr .dcx .dds .dib .dng .dpx .emf .eps .erf .exif .exr .fff .fits .flif .fpx .gif .hdr) do call :QueueOne %%E %IRFAN_FTA_PROGID%
+for %%E in (.heic .heif .icb .icns .ico .iiq .j2c .j2k .jas .jb2 .jbig .jbig2 .jfi .jfif .jif .jng .jp2 .jpc .jpe .jpeg .jpf .jpg .jpm .jps .jpx .jxl .k25 .kdc .lbm .mef .miff .mos .mrw .nef .nrw) do call :QueueOne %%E %IRFAN_FTA_PROGID%
+for %%E in (.ora .orf .pam .pbm .pcd .pcx .pef .pfm .pgm .pic .pict .png .pnm .ppm .psb .psd .psp .pspimage .ptx .pxn .qoi .raf .ras .raw .rgb .rgba .rle .rw2 .rwl .sgi .sr2 .srf .srw .svg .svgz) do call :QueueOne %%E %IRFAN_FTA_PROGID%
+for %%E in (.tga .tif .tiff .vda .vst .wbmp .webp .wmf .x3f .xbm .xcf .xpm) do call :QueueOne %%E %IRFAN_FTA_PROGID%
 call :Log "[INFO] Obrazove asociace pripraveny. Celkem zatim: !EXT_COUNT!"
 exit /b 0
 

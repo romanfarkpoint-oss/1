@@ -352,12 +352,13 @@ RunVlcPlaylistMode(selectedFile) {
 
     StartVlcWithPlaylist(playlistPath, selectedDir, httpPort, httpPassword)
 
-    if (startIndex > 1) {
-        if SwitchVlcToSelectedFile(httpPort, httpPassword, selectedFile, startIndex, files.Length, HTTP_TIMEOUT_MS) {
-            Log("VLC prepnut na vybrany soubor pri zachovanem poradi playlistu.")
-        } else {
-            Log("VAROVANI: Nepodarilo se prepnout VLC na vybrany soubor v casovem limitu.")
-        }
+    ; Playlist ve VLC startuje bez autostartu, aby se na par vterin nespustila
+    ; prvni polozka. Prehravani se spusti az tady pres HTTP primo na kliknute
+    ; polozce; pro prvni polozku je to take potreba, protoze autostart je vypnuty.
+    if SwitchVlcToSelectedFile(httpPort, httpPassword, selectedFile, startIndex, files.Length, HTTP_TIMEOUT_MS) {
+        Log("VLC spusteno/prepnuto na vybrany soubor pri zachovanem poradi playlistu.")
+    } else {
+        Log("VAROVANI: Nepodarilo se spustit/prepnout VLC na vybrany soubor v casovem limitu.")
     }
 
     Log("VLC spusteno s playlistem v puvodnim poradi slozky.")
@@ -650,7 +651,7 @@ StartVlcWithPlaylist(playlistPath, workingDir, httpPort, httpPassword) {
     commandLine := Quote(vlcPath)
         . " --no-one-instance"
         . " --started-from-file"
-        . " --playlist-autostart"
+        . " --no-playlist-autostart"
         . " --no-qt-error-dialogs"
         . " --no-interact"
         . " --quiet"
@@ -1372,7 +1373,7 @@ RunWinampPlaylistMode(selectedFile) {
     }
 
     playlist := CreateM3U8PlaylistForWinamp(files, selectedDir)
-    StartWinampWithPlaylist(playlist, startIndex)
+    StartWinampWithPlaylist(playlist, startIndex, files.Length)
     ExitApp(0)
 }
 
@@ -1453,7 +1454,7 @@ GetWinampExe() {
     return "P:\Programy\Winamp\winamp.exe"
 }
 
-StartWinampWithPlaylist(playlist, startIndex := 1) {
+StartWinampWithPlaylist(playlist, startIndex := 1, expectedItemCount := 0) {
     winamp := GetWinampExe()
     try Run(Quote(winamp) " " Quote(playlist))
     catch as e {
@@ -1461,15 +1462,14 @@ StartWinampWithPlaylist(playlist, startIndex := 1) {
         ExitApp(31)
     }
 
-    if (startIndex > 1) {
-        SelectWinampPlaylistItem(startIndex)
-    }
+    SelectWinampPlaylistItem(startIndex, expectedItemCount)
 }
 
-SelectWinampPlaylistItem(startIndex) {
+SelectWinampPlaylistItem(startIndex, expectedItemCount := 0) {
     targetPos := startIndex - 1
-    deadline := A_TickCount + 10000
+    deadline := A_TickCount + 15000
     hwnd := 0
+    lastCommandTick := 0
 
     while (A_TickCount < deadline) {
         try hwnd := WinExist("ahk_class Winamp v1.x")
@@ -1479,12 +1479,24 @@ SelectWinampPlaylistItem(startIndex) {
 
         if (hwnd) {
             try {
-                ; WM_WA_IPC = 0x400, IPC_SETPLAYLISTPOS = 121, IPC_STARTPLAY = 102.
-                SendMessage(0x400, targetPos, 121, , "ahk_id " hwnd)
-                Sleep(150)
-                SendMessage(0x400, 0, 102, , "ahk_id " hwnd)
-                Log("Winamp prepnut na pozici playlistu: " startIndex)
-                return true
+                ; WM_WA_IPC = 0x400, IPC_STARTPLAY = 102,
+                ; IPC_SETPLAYLISTPOS = 121, IPC_GETLISTLENGTH = 124,
+                ; IPC_GETLISTPOS = 125.
+                listLength := SendMessage(0x400, 0, 124, , "ahk_id " hwnd)
+                playlistReady := (expectedItemCount <= 0 || listLength >= expectedItemCount)
+
+                if playlistReady && ((A_TickCount - lastCommandTick) >= 500) {
+                    SendMessage(0x400, targetPos, 121, , "ahk_id " hwnd)
+                    Sleep(150)
+                    SendMessage(0x400, 0, 102, , "ahk_id " hwnd)
+                    lastCommandTick := A_TickCount
+                }
+
+                currentPos := SendMessage(0x400, 0, 125, , "ahk_id " hwnd)
+                if (playlistReady && currentPos = targetPos) {
+                    Log("Winamp prepnut na pozici playlistu: " startIndex " / " expectedItemCount)
+                    return true
+                }
             } catch as e {
                 Log("VAROVANI: Nepodarilo se prepnout Winamp playlist: " e.Message)
             }
@@ -1493,6 +1505,7 @@ SelectWinampPlaylistItem(startIndex) {
         Sleep(250)
     }
 
+    Log("VAROVANI: Winamp se nepodarilo prepnout na pozici playlistu: " startIndex)
     return false
 }
 
