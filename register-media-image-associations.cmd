@@ -101,10 +101,8 @@ echo.
 call :Log "[INFO] Spoustim SetUserFTA postupne pro kazdou asociaci z konfiguracniho souboru: %CONFIG_FILE%"
 set "OK_COUNT=0"
 set "WARN_COUNT=0"
-call :StartSetUserFtaAutoConfirm
 call :ApplyQueuedAssociations
 set "SETUSERFTA_EXIT=%ERRORLEVEL%"
-call :StopSetUserFtaAutoConfirm
 call :Log "SetUserFTA souhrn: OK=!OK_COUNT!, chyby=!WARN_COUNT!, exit=%SETUSERFTA_EXIT%"
 call :VerifySampleAssociations
 if not "%SETUSERFTA_EXIT%"=="0" (
@@ -164,7 +162,7 @@ exit /b 1
 set "ONE_EXT=%~1"
 set "ONE_PROGID=%~2"
 >>"%LOG_FILE%" echo [%DATE% %TIME%] SetUserFTA %ONE_EXT% %ONE_PROGID%
-(echo Y& echo A& echo.) | "%SETUSERFTA%" %ONE_EXT% %ONE_PROGID% >>"%LOG_FILE%" 2>&1
+start "SetUserFTA %ONE_EXT%" /wait "%SETUSERFTA%" %ONE_EXT% %ONE_PROGID% >>"%LOG_FILE%" 2>&1
 set "ONE_EXIT=%ERRORLEVEL%"
 if not "%ONE_EXIT%"=="0" >>"%LOG_FILE%" echo [%DATE% %TIME%] WARN SetUserFTA failed: %ONE_EXT% %ONE_PROGID% exit=%ONE_EXIT%
 exit /b %ONE_EXIT%
@@ -179,31 +177,13 @@ for %%E in (.mp3 .mp4 .jpg .png) do (
 exit /b 0
 
 :StartSetUserFtaAutoConfirm
-REM SetUserFTA muze zobrazit potvrzovaci okno. Watcher po dobu behu zkousi
-REM aktivovat okno SetUserFTA a poslat Enter/mezernik; konzolove dotazy se
-REM zaroven potvrzuji pres stdin u samotneho volani SetUserFTA.
-call :Log "Start auto-confirm watcheru pro SetUserFTA."
-del "%AUTO_CONFIRM_STOP%" >nul 2>nul
->"%AUTO_CONFIRM_PS1%" echo param([string]$StopFile)
->>"%AUTO_CONFIRM_PS1%" echo Add-Type -AssemblyName Microsoft.VisualBasic
->>"%AUTO_CONFIRM_PS1%" echo Add-Type -AssemblyName System.Windows.Forms
->>"%AUTO_CONFIRM_PS1%" echo $deadline = (Get-Date).AddSeconds(180)
->>"%AUTO_CONFIRM_PS1%" echo while ((Get-Date) -lt $deadline -and -not (Test-Path -LiteralPath $StopFile)) {
->>"%AUTO_CONFIRM_PS1%" echo   $processes = Get-Process -Name SetUserFTA -ErrorAction SilentlyContinue ^| Where-Object { $_.MainWindowHandle -ne 0 }
->>"%AUTO_CONFIRM_PS1%" echo   foreach ($p in $processes) {
->>"%AUTO_CONFIRM_PS1%" echo     [Microsoft.VisualBasic.Interaction]::AppActivate($p.Id) ^| Out-Null
->>"%AUTO_CONFIRM_PS1%" echo     Start-Sleep -Milliseconds 120
->>"%AUTO_CONFIRM_PS1%" echo     [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
->>"%AUTO_CONFIRM_PS1%" echo     Start-Sleep -Milliseconds 120
->>"%AUTO_CONFIRM_PS1%" echo     [System.Windows.Forms.SendKeys]::SendWait(' ')
->>"%AUTO_CONFIRM_PS1%" echo   }
->>"%AUTO_CONFIRM_PS1%" echo   Start-Sleep -Milliseconds 300
->>"%AUTO_CONFIRM_PS1%" echo }
-start "" /b powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%AUTO_CONFIRM_PS1%" "%AUTO_CONFIRM_STOP%" >nul 2>nul
+REM Vypnuto: dlouho bezici PowerShell watcher mohl zustat aktivni po chybe
+REM a potvrzovat dalsi okna. SetUserFTA se ted spousti pres start /wait,
+REM takze batch ceka na kazdou instanci a nepusti jich stovky najednou.
+call :Log "Auto-confirm watcher je vypnuty; SetUserFTA bezi synchronne pres start /wait."
 exit /b 0
 
 :StopSetUserFtaAutoConfirm
-if defined AUTO_CONFIRM_STOP type nul > "%AUTO_CONFIRM_STOP%" 2>nul
 exit /b 0
 
 :CleanupTempFiles
