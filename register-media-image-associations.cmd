@@ -79,12 +79,20 @@ if errorlevel 1 (
 )
 
 if "%CHOICE_CODE%"=="1" (
-  call :RegisterMedia || goto FAIL
-  call :RegisterImages || goto FAIL
+  call :Log "[INFO] Volba 1: spoustim RegisterMedia."
+  call :RegisterMedia
+  if errorlevel 1 goto FAIL
+  call :Log "[INFO] Volba 1: RegisterMedia hotovo, spoustim RegisterImages."
+  call :RegisterImages
+  if errorlevel 1 goto FAIL
 ) else if "%CHOICE_CODE%"=="2" (
-  call :RegisterImages || goto FAIL
+  call :Log "[INFO] Volba 2: spoustim RegisterImages."
+  call :RegisterImages
+  if errorlevel 1 goto FAIL
 ) else if "%CHOICE_CODE%"=="3" (
-  call :RegisterMedia || goto FAIL
+  call :Log "[INFO] Volba 3: spoustim RegisterMedia."
+  call :RegisterMedia
+  if errorlevel 1 goto FAIL
 ) else (
   echo [CHYBA] Neplatna volba.
   goto FAIL
@@ -237,6 +245,7 @@ reg add "HKCU\Software\Classes\%IRFAN_PROGID%\shell\open\command" /ve /d "\"%IRF
 exit /b 0
 
 :RegisterMedia
+call :Log "[INFO] RegisterMedia start."
 call :RegisterProgIds
 for %%E in (.264 .265 .3g2 .3gp .3gp2 .3gpp .amv .asf .avi .av1 .avc .avs .bik .braw .bsf .camrec .cine .dash .dav .divx .drc .dv .dvr-ms .evo .f4p .f4v .flc .fli .flv .g64 .gvi .gxf .h261 .h263 .h264) do call :QueueOne %%E %VLC_PROGID%
 for %%E in (.h265 .hevc .ifo .imx .ismv .ivf .m1v .m2p .m2t .m2ts .m2v .m4e .m4v .mj2 .mjpeg .mjpg .mks .mkv .mng .mov .movie .mp2v .mp4 .mp4v .mpe .mpeg .mpeg1 .mpeg2 .mpeg4 .mpg .mpg2 .mpv .mpv2 .mts .mve) do call :QueueOne %%E %VLC_PROGID%
@@ -249,7 +258,13 @@ call :Log "[INFO] Media asociace pripraveny. Celkem zatim: !EXT_COUNT!"
 exit /b 0
 
 :RegisterImages
-call :RegisterIrfanProgId || exit /b 1
+call :Log "[INFO] RegisterImages start."
+call :RegisterIrfanProgId
+if errorlevel 1 (
+  call :Log "[CHYBA] RegisterIrfanProgId selhalo."
+  exit /b 1
+)
+call :Log "[INFO] RegisterIrfanProgId hotovo, frontuji obrazove pripony."
 for %%E in (.3fr .ai .ani .apng .arw .avif .bay .bmp .bmq .cal .cin .clip .cpt .cr2 .cr3 .crw .cur .dc2 .dcr .dcx .dds .dib .dng .dpx .emf .eps .erf .exif .exr .fff .fits .flif .fpx .gif .hdr) do call :QueueOne %%E %IRFAN_PROGID%
 for %%E in (.heic .heif .icb .icns .ico .iiq .j2c .j2k .jas .jb2 .jbig .jbig2 .jfi .jfif .jif .jng .jp2 .jpc .jpe .jpeg .jpf .jpg .jpm .jps .jpx .jxl .k25 .kdc .lbm .mef .miff .mos .mrw .nef .nrw) do call :QueueOne %%E %IRFAN_PROGID%
 for %%E in (.ora .orf .pam .pbm .pcd .pcx .pef .pfm .pgm .pic .pict .png .pnm .ppm .psb .psd .psp .pspimage .ptx .pxn .qoi .raf .ras .raw .rgb .rgba .rle .rw2 .rwl .sgi .sr2 .srf .srw .svg .svgz) do call :QueueOne %%E %IRFAN_PROGID%
