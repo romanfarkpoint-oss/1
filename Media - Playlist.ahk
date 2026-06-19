@@ -974,10 +974,14 @@ IsVlcBlockingDialogOpen() {
             className := ""
 
             try title := WinGetTitle("ahk_id " hwnd)
-            catch title := ""
+            catch {
+                title := ""
+            }
 
             try className := WinGetClass("ahk_id " hwnd)
-            catch className := ""
+            catch {
+                className := ""
+            }
 
             lowerTitle := StrLower(title)
             lowerClass := StrLower(className)
@@ -1469,7 +1473,9 @@ SelectWinampPlaylistItem(startIndex) {
 
     while (A_TickCount < deadline) {
         try hwnd := WinExist("ahk_class Winamp v1.x")
-        catch hwnd := 0
+        catch {
+            hwnd := 0
+        }
 
         if (hwnd) {
             try {

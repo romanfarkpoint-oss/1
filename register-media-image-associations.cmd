@@ -98,22 +98,21 @@ if "%EXT_COUNT%"=="0" (
 )
 
 echo.
-call :Log "[INFO] Spoustim SetUserFTA jednou nad konfiguracnim souborem: %CONFIG_FILE%"
+call :Log "[INFO] Spoustim SetUserFTA postupne pro kazdou asociaci z konfiguracniho souboru: %CONFIG_FILE%"
+set "OK_COUNT=0"
+set "WARN_COUNT=0"
 call :StartSetUserFtaAutoConfirm
->>"%LOG_FILE%" echo ----- SetUserFTA output start -----
-(echo Y& echo A& echo.) | "%SETUSERFTA%" "%CONFIG_FILE%" >>"%LOG_FILE%" 2>&1
+call :ApplyQueuedAssociations
 set "SETUSERFTA_EXIT=%ERRORLEVEL%"
->>"%LOG_FILE%" echo ----- SetUserFTA output end, exit=%SETUSERFTA_EXIT% -----
 call :StopSetUserFtaAutoConfirm
-call :Log "SetUserFTA exit code: %SETUSERFTA_EXIT%"
+call :Log "SetUserFTA souhrn: OK=!OK_COUNT!, chyby=!WARN_COUNT!, exit=%SETUSERFTA_EXIT%"
+call :VerifySampleAssociations
 if not "%SETUSERFTA_EXIT%"=="0" (
-  call :Log "[CHYBA] SetUserFTA selhalo pri importu konfigurace."
+  call :Log "[CHYBA] Nektere asociace se nepodarilo nastavit."
   call :Log "[POZN] HKCU fallback zaznamy byly vytvoreny, ale Windows UserChoice se nemusel zmenit."
   call :CleanupTempFiles
   call :WaitBeforeExit
   exit /b 1
-) else (
-  set "OK_COUNT=%EXT_COUNT%"
 )
 
 call :CleanupTempFiles
@@ -140,6 +139,43 @@ exit /b 0
 echo.
 echo Stisknete libovolnou klavesu pro zavreni okna...
 pause >nul
+exit /b 0
+
+:ApplyQueuedAssociations
+set "APPLY_COUNT=0"
+for /f "usebackq tokens=1,2 delims=," %%A in ("%CONFIG_FILE%") do (
+  set "APPLY_EXT=%%~A"
+  set "APPLY_PROGID=%%~B"
+  if "!APPLY_PROGID:~0,1!"==" " set "APPLY_PROGID=!APPLY_PROGID:~1!"
+  call :ApplyOneAssociation "!APPLY_EXT!" "!APPLY_PROGID!"
+  if errorlevel 1 (
+    set /a WARN_COUNT+=1
+  ) else (
+    set /a OK_COUNT+=1
+  )
+  set /a APPLY_COUNT+=1
+  set /a APPLY_MOD=APPLY_COUNT %% 25
+  if "!APPLY_MOD!"=="0" call :Log "[INFO] SetUserFTA progress: !APPLY_COUNT!/!EXT_COUNT!"
+)
+if "%WARN_COUNT%"=="0" exit /b 0
+exit /b 1
+
+:ApplyOneAssociation
+set "ONE_EXT=%~1"
+set "ONE_PROGID=%~2"
+>>"%LOG_FILE%" echo [%DATE% %TIME%] SetUserFTA %ONE_EXT% %ONE_PROGID%
+(echo Y& echo A& echo.) | "%SETUSERFTA%" %ONE_EXT% %ONE_PROGID% >>"%LOG_FILE%" 2>&1
+set "ONE_EXIT=%ERRORLEVEL%"
+if not "%ONE_EXIT%"=="0" >>"%LOG_FILE%" echo [%DATE% %TIME%] WARN SetUserFTA failed: %ONE_EXT% %ONE_PROGID% exit=%ONE_EXIT%
+exit /b %ONE_EXIT%
+
+:VerifySampleAssociations
+call :Log "[INFO] Overuji ukazkove asociace pres SetUserFTA query."
+for %%E in (.mp3 .mp4 .jpg .png) do (
+  >>"%LOG_FILE%" echo ----- query %%E start -----
+  "%SETUSERFTA%" query %%E >>"%LOG_FILE%" 2>&1
+  >>"%LOG_FILE%" echo ----- query %%E end -----
+)
 exit /b 0
 
 :StartSetUserFtaAutoConfirm
