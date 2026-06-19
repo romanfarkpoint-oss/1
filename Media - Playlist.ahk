@@ -3,7 +3,7 @@
 
 ; ============================================================
 ; Media - Playlist.ahk
-; Verze baliku asociaci: v36
+; Verze baliku asociaci: v37
 ; ============================================================
 ; Ucel:
 ;   Po dvojkliku na video nebo hudbu:
@@ -27,7 +27,7 @@
 ; ============================================================
 
 SCRIPT_NAME := "Media - Playlist"
-SCRIPT_VERSION := "v36"
+SCRIPT_VERSION := "v37"
 PLAYLIST_DIR := ""
 INI_FILE := ""
 HTTP_TIMEOUT_MS := 25000
@@ -336,11 +336,10 @@ RunVlcPlaylistMode(selectedFile) {
     Log("Pocet souboru ve slozce pro vybrany typ: " files.Length)
     Log("Pozice vybraneho souboru v puvodni slozce: " startIndex)
 
-    ; v27: playlist pro VLC se od vybraneho souboru otoci tak,
-    ; aby VLC nezacalo prehravat prvni soubor ve slozce a az potom
-    ; se nepreplo na kliknuty soubor. Kliknuty soubor je tedy v playlistu prvni.
-    orderedFiles := RotateFilesForPlaylist(files, startIndex)
-    playlistPath := CreateXspfPlaylist(orderedFiles)
+    ; v37: Playlist zustava v puvodnim prirozenem poradi slozky.
+    ; Kliknuty soubor se po startu vybere pres HTTP rozhrani VLC, aby seznam
+    ; zustal 1,2,3,4,5 a prehravani zacalo treba na 3. polozce.
+    playlistPath := CreateXspfPlaylist(files)
 
     if (playlistPath = "") {
         Log("Nepodarilo se vytvorit playlist, spoustim pouze tento soubor.")
@@ -353,11 +352,15 @@ RunVlcPlaylistMode(selectedFile) {
 
     StartVlcWithPlaylist(playlistPath, selectedDir, httpPort, httpPassword)
 
-    ; v36: Po spusteni VLC uz skript nehlida okna VLC, neposila HTTP prikazy
-    ; a nespousti OSD dohled. Playlist je otoceny tak, ze kliknuty soubor je prvni.
-    ; Pokud VLC narazi na poskozeny soubor nebo zobrazi vlastni dialog, zustane to
-    ; ciste vec VLC a tento AHK skript do toho uz nezasahuje.
-    Log("VLC spusteno s otocenym playlistem. AHK skript konci a do VLC uz nezasahuje.")
+    if (startIndex > 1) {
+        if SwitchVlcToSelectedFile(httpPort, httpPassword, selectedFile, startIndex, files.Length, HTTP_TIMEOUT_MS) {
+            Log("VLC prepnut na vybrany soubor pri zachovanem poradi playlistu.")
+        } else {
+            Log("VAROVANI: Nepodarilo se prepnout VLC na vybrany soubor v casovem limitu.")
+        }
+    }
+
+    Log("VLC spusteno s playlistem v puvodnim poradi slozky.")
     ExitApp(0)
 }
 
@@ -1364,9 +1367,8 @@ RunWinampPlaylistMode(selectedFile) {
         ExitApp(0)
     }
 
-    ordered := RotateFilesForWinamp(files, startIndex)
-    playlist := CreateM3U8PlaylistForWinamp(ordered, selectedDir)
-    StartWinampWithPlaylist(playlist)
+    playlist := CreateM3U8PlaylistForWinamp(files, selectedDir)
+    StartWinampWithPlaylist(playlist, startIndex)
     ExitApp(0)
 }
 
@@ -1447,13 +1449,45 @@ GetWinampExe() {
     return "P:\Programy\Winamp\winamp.exe"
 }
 
-StartWinampWithPlaylist(playlist) {
+StartWinampWithPlaylist(playlist, startIndex := 1) {
     winamp := GetWinampExe()
     try Run(Quote(winamp) " " Quote(playlist))
     catch as e {
         MsgBox("Nepodarilo se spustit Winamp:`n`n" e.Message, SCRIPT_NAME, "Iconx")
         ExitApp(31)
     }
+
+    if (startIndex > 1) {
+        SelectWinampPlaylistItem(startIndex)
+    }
+}
+
+SelectWinampPlaylistItem(startIndex) {
+    targetPos := startIndex - 1
+    deadline := A_TickCount + 10000
+    hwnd := 0
+
+    while (A_TickCount < deadline) {
+        try hwnd := WinExist("ahk_class Winamp v1.x")
+        catch hwnd := 0
+
+        if (hwnd) {
+            try {
+                ; WM_WA_IPC = 0x400, IPC_SETPLAYLISTPOS = 121, IPC_STARTPLAY = 102.
+                SendMessage(0x400, targetPos, 121, , "ahk_id " hwnd)
+                Sleep(150)
+                SendMessage(0x400, 0, 102, , "ahk_id " hwnd)
+                Log("Winamp prepnut na pozici playlistu: " startIndex)
+                return true
+            } catch as e {
+                Log("VAROVANI: Nepodarilo se prepnout Winamp playlist: " e.Message)
+            }
+        }
+
+        Sleep(250)
+    }
+
+    return false
 }
 
 StartWinampWithSingleFile(filePath) {
