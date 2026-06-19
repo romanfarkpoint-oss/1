@@ -48,6 +48,8 @@ set "OK_COUNT=0"
 set "WARN_COUNT=0"
 set "EXT_COUNT=0"
 set "CONFIG_FILE=%TEMP%\SetUserFTA_media_image_%RANDOM%%RANDOM%.txt"
+set "AUTO_CONFIRM_STOP=%TEMP%\SetUserFTA_auto_confirm_%RANDOM%%RANDOM%.stop"
+set "AUTO_CONFIRM_PS1=%TEMP%\SetUserFTA_auto_confirm_%RANDOM%%RANDOM%.ps1"
 
 type nul > "%CONFIG_FILE%"
 if errorlevel 1 (
@@ -70,24 +72,27 @@ if "%CHOICE_CODE%"=="1" (
 
 if "%EXT_COUNT%"=="0" (
   echo [CHYBA] Nebyla pripravena zadna asociace.
-  del "%CONFIG_FILE%" >nul 2>nul
+  call :CleanupTempFiles
   exit /b 1
 )
 
 echo.
 echo [INFO] Spoustim SetUserFTA jednou nad konfiguracnim souborem:
 echo        %CONFIG_FILE%
-"%SETUSERFTA%" "%CONFIG_FILE%"
-if errorlevel 1 (
+call :StartSetUserFtaAutoConfirm
+(echo Y& echo A& echo.) | "%SETUSERFTA%" "%CONFIG_FILE%"
+set "SETUSERFTA_EXIT=%ERRORLEVEL%"
+call :StopSetUserFtaAutoConfirm
+if not "%SETUSERFTA_EXIT%"=="0" (
   echo [CHYBA] SetUserFTA selhalo pri importu konfigurace.
   echo [POZN] HKCU fallback zaznamy byly vytvoreny, ale Windows UserChoice se nemusel zmenit.
-  del "%CONFIG_FILE%" >nul 2>nul
+  call :CleanupTempFiles
   exit /b 1
 ) else (
   set "OK_COUNT=%EXT_COUNT%"
 )
 
-del "%CONFIG_FILE%" >nul 2>nul
+call :CleanupTempFiles
 
 echo.
 echo [HOTOVO] Pripraveno asociaci: !EXT_COUNT!, SetUserFTA uspesne: !OK_COUNT!, varovani: !WARN_COUNT!
@@ -95,8 +100,42 @@ echo [POZN] Pokud se zmena hned neprojevi, restartujte Explorer nebo se odhlaste
 exit /b 0
 
 :FAIL
-del "%CONFIG_FILE%" >nul 2>nul
+call :StopSetUserFtaAutoConfirm
+call :CleanupTempFiles
 exit /b 1
+
+:StartSetUserFtaAutoConfirm
+REM SetUserFTA muze zobrazit potvrzovaci okno. Watcher po dobu behu zkousi
+REM aktivovat okno SetUserFTA a poslat Enter/mezernik; konzolove dotazy se
+REM zaroven potvrzuji pres stdin u samotneho volani SetUserFTA.
+del "%AUTO_CONFIRM_STOP%" >nul 2>nul
+>"%AUTO_CONFIRM_PS1%" echo param([string]$StopFile)
+>>"%AUTO_CONFIRM_PS1%" echo Add-Type -AssemblyName Microsoft.VisualBasic
+>>"%AUTO_CONFIRM_PS1%" echo Add-Type -AssemblyName System.Windows.Forms
+>>"%AUTO_CONFIRM_PS1%" echo $deadline = (Get-Date).AddSeconds(180)
+>>"%AUTO_CONFIRM_PS1%" echo while ((Get-Date) -lt $deadline -and -not (Test-Path -LiteralPath $StopFile)) {
+>>"%AUTO_CONFIRM_PS1%" echo   $processes = Get-Process -Name SetUserFTA -ErrorAction SilentlyContinue ^| Where-Object { $_.MainWindowHandle -ne 0 }
+>>"%AUTO_CONFIRM_PS1%" echo   foreach ($p in $processes) {
+>>"%AUTO_CONFIRM_PS1%" echo     [Microsoft.VisualBasic.Interaction]::AppActivate($p.Id) ^| Out-Null
+>>"%AUTO_CONFIRM_PS1%" echo     Start-Sleep -Milliseconds 120
+>>"%AUTO_CONFIRM_PS1%" echo     [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
+>>"%AUTO_CONFIRM_PS1%" echo     Start-Sleep -Milliseconds 120
+>>"%AUTO_CONFIRM_PS1%" echo     [System.Windows.Forms.SendKeys]::SendWait(' ')
+>>"%AUTO_CONFIRM_PS1%" echo   }
+>>"%AUTO_CONFIRM_PS1%" echo   Start-Sleep -Milliseconds 300
+>>"%AUTO_CONFIRM_PS1%" echo }
+start "" /b powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%AUTO_CONFIRM_PS1%" "%AUTO_CONFIRM_STOP%" >nul 2>nul
+exit /b 0
+
+:StopSetUserFtaAutoConfirm
+if defined AUTO_CONFIRM_STOP type nul > "%AUTO_CONFIRM_STOP%" 2>nul
+exit /b 0
+
+:CleanupTempFiles
+del "%CONFIG_FILE%" >nul 2>nul
+del "%AUTO_CONFIRM_STOP%" >nul 2>nul
+del "%AUTO_CONFIRM_PS1%" >nul 2>nul
+exit /b 0
 
 :EnsureWmic
 where wmic.exe >nul 2>nul
